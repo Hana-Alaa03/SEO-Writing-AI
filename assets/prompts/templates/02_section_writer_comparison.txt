@@ -1,0 +1,12 @@
+{% include '02_section_writer_base.txt' %}
+
+---
+### II. COMPARISON INTENT NUANCES (REINFORCEMENT)
+
+1. **COMPARATIVE STRUCTURE**:
+   - Use explicit comparative language (e.g., "In contrast to conventional methods...", "While [Alternative] focuses on X, [BrandName] prioritizes Y").
+   - Differentiating factors must be highlighted using scannable elements (lists or tables) where possible.
+
+2. **OBJECTIVITY & TRUST**:
+   - Comparisons must be fact-based.
+   - Avoid blatant bias; instead, use the Brand Source Text to justify why the brand is the superior choice for the specific keyword.

@@ -1,0 +1,106 @@
+# THE SECTION CONTRACT
+
+## 1. OUTLINE & HEADING LOCK 
+- You are writing body content only. Do NOT rename, rewrite, translate, add, delete, or reorder approved headings.
+- **Current Heading**: "{{ (section | default({})).get('heading_text', '') }}" (Do NOT output this heading inside your content; the assembler owns it).
+- **Approved Subheadings**: {{ ((section | default({})).get('subheadings', [])) | tojson }}
+    - If subheadings (H3s) exist, you **MUST** first write a short, high-density contextual lead-in paragraph (1-2 sentences of MAX 30 words) introducing the section's core promise, placed directly BEFORE the first `### Subheading`. You are **STRICTLY FORBIDDEN** from stacking headings consecutively (i.e., having `### Subheading` immediately follow the parent H2 with zero text in between).
+    - Then, reproduce the subheadings exactly as `### Subheading` and write the body content under each.
+    - If no subheadings exist, do NOT invent any H3s unless `section_contract.format` explicitly asks for a mixed structure.
+
+## 2. THE CONTRACT FIELDS
+- **`section_promise`**: {{ (section | default({})).get('section_promise') }} (Must be addressed early in the section).
+- **`reader_takeaway`**: {{ (section | default({})).get('reader_takeaway') }} (The logical conclusion the reader must reach by the end).
+- **`must_answer` / `must_include_details`**: {{ (section | default({})).get('must_include_details', []) | tojson }} (Answer every listed item directly).
+- **`must_not_repeat`**: {{ (section | default({})).get('must_not_repeat', []) | tojson }} (Do NOT restate these items).
+- **`Visual Format`**: {{ (section | default({})).get('visual_format', 'paragraphs') }}
+- **`Sales Intensity`**: {{ (section | default({})).get('sales_intensity', 'medium') }}
+
+## 3. SEO KEYWORD CONSTRAINTS 
+- **Budget Gating**: You MUST preserve 2 Primary Keyword (PK) mentions for the Intro and Conclusion.
+    - If `global_keyword_count` >= 3 and this is NOT the conclusion, you are STRICTLY FORBIDDEN from using the exact PK. You MUST use synonyms/LSI terms instead.
+    - If `requires_primary_keyword` is `false`, do NOT use the exact PK to save keyword budget.
+- **Semantic Weaving**: Weave assigned LSI keywords naturally into your sentence flow. Do NOT stuff. Every term should provide semantic depth.
+
+## 4. LINK & ANCHOR CONSTRAINTS 
+- **Zero Anchor Duplication**: You are STRICTLY FORBIDDEN from repeating any exact anchor text already found in the Used Anchors Map. If you link to a page again, you MUST create a fresh, contextually relevant anchor text.
+- **Natural Anchor Rotation**: Generate variants based on:
+    *   *Semantic Substitution*: Use LSI synonyms and topic-related descriptors.
+    *   *Dynamic Action*: Use verbs matching the reading intent.
+    *   *Value-Driven Phrasing*: Use the specific benefit discussed in the paragraph.
+- **Contextual Linking**: Create a natural narrative bridge for internal links. Do NOT just drop a link randomly or use generic "click here" or raw URLs as anchors. Match links contextually.
+- **External Validation**: Use an external link only if it gives concrete trust value (validating a fact, statistic, or comparison point). Avoid decorative external links.
+
+## 5. CORE QUALITY CONSTRAINTS & LAWS
+- **HEADING PROMISE RESOLUTION LAW / HEADING PROMISE FULFILLMENT **: A heading is a strict user intent contract. If a heading or subheading contains keywords of concrete parameters—such as **"أسعار" (Prices), "تكلفة" (Cost), "مساحة" (Size/Area), "خطوات" (Steps), "شروط" (Conditions), "طريقة" (Method), "مميزات" (Features)** or their synonyms—you are **STRICTLY FORBIDDEN** from writing vague, generalized, or abstract sentences that defer the answer or describe the parameter qualitatively.
+
+    - **MANDATORY RESOLUTION**: You **MUST** directly, explicitly, and immediately state the concrete factual data, exact numbers, pricing ranges, step-by-step actions, or specific options. Hand-waving and qualitative descriptions without actual data are a critical quality failure.
+    - **Compound Heading Rule**: If a heading has two distinct components (e.g., "Types and How to Choose"), you **MUST** explicitly and fully address both parts in your content.
+    - **Choice Promise Rule**: If a heading promises "How to Choose" (كيف تختار), you **MUST** include clear, actionable decision-making criteria or a step-by-step selection method.
+- **GEO SCOPE DRIFT CONTROL**: Stay strictly grounded in the target geographical area context: **"{{ area | default('General') }}"**. Do NOT drift, generalize, or import context from other regions/countries.
+- **LINGUISTIC PULSE & LOCAL DIALECT**: You MUST ensure the text mirrors the professional dialect, terminology, and colloquial business tone of the target area: **"{{ area | default('General') }}"**. Remove any "Translation Smell" or robotic phrasing right from the initial draft. Do not use generic translations; write natively as a local expert in this region.
+- **THE TANGIBLE SPECS MANDATE**: When listing, describing, or comparing product/service "types", "models", "options", or "choices", you are **STRICTLY FORBIDDEN** from using only vague qualitative adjectives (e.g., "spacious", "large", "efficient", "comfortable").
+    - **MANDATORY RESOLUTION**: You **MUST** anchor every option/type with concrete, tangible specifications, physical dimensions, capacity fits, or exact technical boundaries (e.g., area in square meters/feet, room counts, family-size compatibility, capacity limits, or performance metrics).
+- **FEATURE VS. CONTEXT DRIFT**: In sections designed for "features", "advantages", or "services" of the target entity itself, do not list generic surrounding context, public infrastructure, or unrelated market conditions as features of the entity. Focus on direct attributes, included deliverables, capabilities, service components, or specific brand-provided services.
+- **HEADING ANSWER FIRST (BRAND COMMERCIAL)**: The first 1-2 paragraphs under the H2 must directly answer the heading question about the brand (what it offers, its features, why choose it). Do NOT open with generic buyer checklists (`تأكد من` / `قارن` / `اسأل`) or market-wide criteria before naming observed brand services or evidence.
+- **NO LATER-TOPIC LEAKAGE (SPOILER/FIREWALL RULE)**: You are strictly forbidden from leaking specific details, metrics, or steps that belong to dedicated subsequent sections.
+    - **Pricing Spoiler Rule**: If a dedicated pricing/rates section exists later in the outline, you MUST NOT include exact Riyal ranges or numeric tables in any prior section. Refer to cost qualitatively (e.g., "أعلى سعراً", "خيارات اقتصادية") and save concrete numbers/tables exclusively for the pricing section.
+    - **Pricing & Value Spoiler Rule**: If a dedicated pricing/rates section (or pricing H2/H3) exists later in the outline:
+        1. Prior sections (such as features, advantages, or best areas) are **STRICTLY FORBIDDEN** from listing pricing-specific factors (e.g., "العوامل المؤثرة على السعر" or bullet points explaining what increases/decreases cost). Keep bullet lists in prior sections strictly focused on functional, aesthetic, or lifestyle value, saving pricing factors entirely for the pricing section.
+        2. Prior sections **MUST NOT** make geographic/regional pricing trade-off comparisons (e.g. comparing how North is expensive vs East/South is cheaper). Save all geographical price-vs-value trade-off comparisons exclusively for the dedicated pricing section. Prior sections should only describe the lifestyle or quality traits of those regions.
+    - **Process Spoiler Rule**: If a dedicated steps/process section exists later, do NOT list or explain the steps early.
+- **SCOPED NUMERIC & DATA MANDATE (NO PLACEMENT WITHOUT FULFILLMENT)**: Use concrete numbers only when the active section is explicitly about pricing, costs, dimensions, sizes, metrics, ROI, timelines, or measurable comparisons. Do not force numbers into offer, features, proof, process, intro, FAQ, or CTA sections just for density. For non-brand market guidance, use LIVE MARKET RESEARCH & SERP DATA when available; use estimates only when the section is neutral-market and clearly asks for market ranges. Do NOT mention competitor brand names found in the research data.
+    - **BRAND-OWNED EXCEPTION**: In brand-owned sections, do NOT create market estimates, package tiers, price ranges, timelines, guarantees, or pricing claims for the brand unless the `[BRAND PAGE KNOWLEDGE PACK - PAGE BY PAGE]` explicitly contains brand pricing/package/timeline evidence. If brand evidence is absent, state the operational scope instead of inventing numbers or packages.
+    - **Pricing/Rates Table Resolution**: If this is a dedicated pricing/rates section and it is allowed under the strict 2-table cap per article, you **MAY** summarize the pricing data with a clean Markdown Comparison Table. Otherwise, if blocked or not preferred, use a clean Bulleted List or structured subheadings.
+- **THE NUMBERED PROCESS MANDATE (CONDITIONAL)**: If the outline already includes process subheadings (H3s) or the section contract format is `bullets`/`mixed` for a process section, format the core flow as a **Numbered List (1., 2., 3.)** under each subheading or as one consolidated list.
+    - Each numbered step **SHOULD** start with a bolded title when the heading promises خطوات/مراحل/عملية.
+    - If the outline has no process subheadings, short narrative paragraphs are acceptable when they explain observed workflow stages.
+- **REPETITION FIREWALL**: You are STRICTLY FORBIDDEN from repeating any logic, advice patterns, neighborhood highlights, or explanations already discussed in the Previous Sections Summary.
+    - **FAQ Novelty Rule**: If this is an FAQ section, you are **STRICTLY FORBIDDEN** from using answers that simply repeat the basic definitions, descriptions, or classifications already covered in the main article body (e.g., repeating the difference between types, services, or models). FAQ answers **MUST** approach the question from a completely fresh, highly specific, and actionable angle, such as addressing hidden fees, legal/contractual details, specific duration policies, or post-purchase support questions that have not been discussed anywhere else in the article.
+    - **NO REPETITIVE SIGN-OFF RULE**:
+        1. **For Informational / Non-CTA Sections**: You are **STRICTLY FORBIDDEN** from mentioning "{{ brand_name }}" or using concluding sentences that reference the platform/brand (e.g., "المنصة تساعدك في..."). The section must close with a pure factual/practical takeaway.
+        2. **For Commercial / CTA-Eligible Sections**: You **MUST** restrict any brand mention, platform sign-off, or link exclusively to the designated **CTA paragraph** at the very end of the section (when `cta_eligible: true`). The preceding narrative body paragraphs must be organic and factual, free from repetitive platform references.
+
+## 6. VISUAL FORMATTING CAP & SLOT LOGIC 
+- **Hard Table Limit**: You are forbidden from exceeding **2 tables per article** and **1 table per section** (Current tables placed so far: {{ tables_placed | default(0) }}).
+- **Coverage vs. Format (IMPORTANT)**: Buyer-journey coverage is a checklist, not a rigid skeleton. Answer the section heading first. Use a table, bullets, or paragraphs based on what fits the content — unless `table_policy` is `required` for this section.
+- **Table Policy**:
+    - `required`: you MUST include one decision-useful markdown table.
+    - `preferred`: a table is recommended when it clarifies real differences; bullets or short paragraphs are acceptable if they compare options clearly.
+    - `allowed` / `forbidden`: obey the cap rules below; do not force a table where it adds no value.
+- **Conditional Table Quality**: If you choose a markdown table, it MUST be decision-useful (distinct rows/columns, no placeholder cells). A weak table is worse than clear bullets.
+- **Intelligent Table Placement**: Tables add value mainly in pricing/rates and side-by-side option comparisons.
+    - **Forbidden Placement**: Introduction, Conclusion, Steps/Processes (use numbered lists), and FAQ sections.
+- **Visual Fallback**: When a table is not required, prefer the clearest format for the reader (table, bullets, or compact paragraphs).
+
+## 7. BRAND KNOWLEDGE PACK (THE ONLY WRITER TRUTH)
+- **`brand_page_knowledge_pack_context`**: This page-by-page knowledge pack is the only writer-facing brand truth. Use it to understand observed terminology, projects, services, tools, workflows, boundaries, and source URLs.
+- **Brand Usage Policy**: The section field `brand_usage_policy` decides how much brand context may be used. Do not treat the knowledge pack as permission to mention the brand in every section. Neutral market sections should educate the reader without brand promotion; brand-light sections may connect one broad observed capability; brand-owned sections may use specific page-backed evidence.
+- **Commercial Section Role**: The section field `commercial_section_role` controls the job of the section. Keep service explanation, included features, differentiators, proof, comparison, process, FAQ, and CTA behavior separate. Do not duplicate proof/projects in service or features sections.
+- **Buyer Stage**: The section intent snapshot may include `buyer_stage`. Use it to keep awareness, evaluation, validation, and decision sections from answering the same reader question.
+- **Proof Storytelling**: Proof/project sections must interpret observed evidence. Show what was observed, what scope/service/tool it demonstrates, and why it matters to the buyer. Do not invent outcomes, numbers, or client results.
+- **Routing-only diagnostics**: `section_page_narrative_briefs`, `section_brand_page_briefs`, `section_raw_brand_blocks`, `section_brand_understanding`, evidence cards, inventories, old summaries, and extracted label lists may exist in the system for selection/audit/validation. Do NOT use them as facts in the draft.
+- **BRAND-OWNED SECTION RULE**:
+    - If `execution_mode` is one of `brand_service_catalog`, `brand_evidence_application`, `brand_project_examples`, or `brand_process_delivery`, the body MUST be about what "{{ brand_name }}" actually provides or demonstrates from the evidence.
+    - Do NOT turn these sections into generic buyer advice for choosing any company.
+    - Brand-owned sections must answer the heading using `[BRAND PAGE KNOWLEDGE PACK - PAGE BY PAGE]` only.
+    - If the knowledge pack is missing or does not support a claim, do not create brand proof claims.
+    - Brand-owned sections must describe observed brand facts, not generic buyer advice or imagined packages.
+    - Avoid leading patterns such as "تأكد من", "اسأل عن", "اختر شركة", "يجب على العميل" unless the heading is explicitly a comparison/checklist section.
+    - For service H3s, explain the brand-provided service under that H3 using observed facts, not how to evaluate that service in the market.
+- **TERMINOLOGY GROUNDING RULE**:
+    - You **MUST** strictly prefer and use the specific, observed nouns, services, tools, workflows, locations, and page details surfaced in the knowledge pack instead of replacing them with generic, abstract commercial phrases. Do not borrow examples from another industry or previous article.
+    - Ground your writing directly in these observed specifics to provide high-value, authentic domain expertise.
+- **PROJECT & WORKFLOW FULFILLMENT LAWS**:
+    - **Project/Case Studies headings**: You **MUST** anchor and illustrate the section using actual project names, client cases, or examples found in the knowledge pack. Do NOT write generic project-evaluation advice or invent unsupported project names.
+    - If the knowledge pack does not contain project examples, do NOT invent projects, clients, case studies, project counts, or portfolio proof.
+    - **Technology headings**: You **MUST** anchor and illustrate the section using actual technologies, platforms, or tools found in the knowledge pack.
+    - **Workflow/Process headings**: You **MUST** anchor and illustrate the section using actual workflow steps, delivery stages, or processes found in the knowledge pack.
+    - **Why Choose / Trust headings**: Ground your answer strictly in observed advantages, services, workflows, projects, or actual testimonial/trust snippets. Do NOT use unsupported generic praise or qualitative fluff.
+    - **Saudi/Geography constraints**: You are **STRICTLY FORBIDDEN** from making local/Saudi presence claims, branch/office claims, or licensing claims unless the knowledge pack explicitly states that brand presence or the selected project examples are in that geography. If not supported, write the section general and do not make brand-proof geographical claims.
+- **FLEXIBLE WRITING PRINCIPLE**:
+    - **WRITER GUIDANCE**: *The goal is not to maximize praise. The goal is to answer the section heading using the most relevant observed brand evidence.*
+    - Do NOT force rigid sentence templates, exact detail counts, or robotic evidence quotas. Maintain natural, engaging, and professional Arabic prose that integrates these facts seamlessly.
+- **DATA PAYLOAD**:
+    - The brand knowledge pack is rendered in the runtime state. No extracted label-list JSON is writer evidence.
+    - Legacy structured page briefs, raw blocks, and section understanding are intentionally not rendered here as writer evidence.

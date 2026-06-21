@@ -1,0 +1,31 @@
+{
+  "sec_03": {
+    "before_role": "evaluation_criteria",
+    "after_role": "features_included",
+    "taxonomy_axis": "brand_features",
+    "format": "paragraphs",
+    "must_include_details": [
+      "حوّل المميزات إلى قدرات تقنية وخدمات مرصودة لدى البراند، وليس نصائح عامة للبحث في السوق.",
+      "اذكر التقنيات أو الأنظمة المرصودة بأسمائها عند توفرها.",
+      "تجنب صيغ مثل تأكد أو اسأل أو اختر؛ اشرح ما يتوفر فعليًا لدى البراند."
+    ],
+    "must_answer": [
+      "المميزات التي تحصل عليها عند اختيار شركة تصميم مواقع محترفة"
+    ]
+  },
+  "sec_04": {
+    "before_role": "service_explanation",
+    "after_role": "brand_differentiator",
+    "taxonomy_axis": "brand_support",
+    "format": "paragraphs",
+    "must_include_details": [
+      "لا تذكر أسماء المشاريع التالية في هذا السكشن (محجوزة لسكشن الأدلة): Billion، Baddel.",
+      "اربط دور البراند بالمشكلة العملية التي يحاول القارئ حلها.",
+      "اجعل ذكر البراند مساعدًا ومحددًا لا دعائيًا عامًا.",
+      "استخدم الخدمات والتقنيات ومراحل العمل المرصودة فقط؛ لا تذكر أسماء مشاريع portfolio هنا."
+    ],
+    "must_answer": [
+      "كيف تميز حلول Creative Minds في سوق تصميم المواقع؟"
+    ]
+  }
+}

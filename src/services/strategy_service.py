@@ -1,0 +1,1507 @@
+from openai.types.beta.realtime import conversation_item_input_audio_transcription_completed_event
+import os
+import logging
+import json
+import asyncio
+import re
+from typing import Dict, Any, List, Optional
+from datetime import datetime
+from jinja2 import Template
+from src.utils.json_utils import recover_json
+from src.utils.seo_utils import finalize_article_title
+
+from src.utils.style_extractor import StyleExtractor
+
+logger = logging.getLogger(__name__)
+
+LOCKED_BRAND_TARGET_READER_STATE = (
+    "A buyer with little or no prior market knowledge who needs simple, practical "
+    "guidance to understand the available options, compare them confidently, and "
+    "take a clear next step without feeling overwhelmed."
+)
+
+LOCKED_BRAND_TONE_DIRECTION = (
+    "Clear, confident, beginner-friendly, practical, and persuasive without pressure."
+)
+
+LOCKED_BRAND_CTA_PHILOSOPHY = (
+    "Earn action through clarity and trust. A very soft CTA may appear at the end "
+    "of the introduction only if the section has already delivered clear value. "
+    "Reserve the main CTA for the conclusion."
+)
+
+# LOCKED_BRAND_SECTION_ROLE_MAP = {
+#     "introduction": (
+#         "Start with a light, relevant hook that reflects the buyer's need. Naturally "
+#         "introduce the primary keyword. Briefly explain what the reader will "
+#         "understand or be able to decide after reading. Optionally include one soft "
+#         "brand mention and one very soft CTA only if it feels earned by the value "
+#         "already given. Avoid urgency, investment language, legal framing, or generic "
+#         "market commentary."
+#     ),
+#     "core_or_benefits": (
+#         "Combine offer clarity with key buyer-facing features. Explain what the "
+#         "offering is, what types or forms are available, and what the buyer "
+#         "practically gets, using simple and scannable language."
+#     ),
+#     "proof": (
+#         "Provide concrete product-tied proof such as pricing reality, value "
+#         "differences, availability, delivery status, or trust signals connected "
+#         "directly to the entity and location. Proof must stay tied to the product "
+#         "at the unit level or listing level, not abstract market conditions. Do "
+#         "not drift into broad market commentary, investment framing, or generic "
+#         "authority language unless the support is directly tied to the buyer's "
+#         "decision about the original entity."
+#     ),
+#     "process_or_how": (
+#         "Explain the practical buying journey step by step, from filtering and "
+#         "shortlisting to inquiry, viewing, and decision, without legal or "
+#         "contract-heavy framing unless explicitly justified."
+#     ),
+#     "faq": (
+#         "Answer beginner buyer questions and objections in simple language, "
+#         "especially around choosing, price, readiness, and the buying steps."
+#     ),
+#     "conclusion": (
+#         "Summarize the value clearly, reduce hesitation, and guide the reader to a "
+#         "confident next step with a direct but not pushy CTA."
+#     ),
+# }
+
+LOCKED_BRAND_SECTION_ROLE_MAP = {
+    "introduction": (
+        "Write exactly 3 paragraphs: (1) a short story-like hook about the reader's problem "
+        "with the primary keyword and no brand, (2) the brand as a simple solution, "
+        "(3) one soft CTA with a markdown link. No hard-sell urgency."
+    ),
+    "offer_clarity": (
+        "Explain what the service/product actually is. Do not turn this into benefits "
+        "or provider-selection criteria."
+    ),
+    "features": (
+        "Explain included features, deliverables, capabilities, or buyer-facing benefits. "
+        "Do not repeat offer_clarity."
+    ),
+    "differentiation": (
+        "Explain supported brand advantages only. Avoid generic best/top/trusted claims."
+    ),
+    "proof": (
+        "Use only supported proof points such as observed projects, testimonials, "
+        "certifications, pricing examples, or results. If unsupported, keep it factual."
+    ),
+    "comparison": (
+        "Compare realistic buyer options, approaches, service tiers, or scenarios. "
+        "Do not compare against named competitors."
+    ),
+    "process": (
+        "Explain the practical customer journey from inquiry to delivery."
+    ),
+    "faq": (
+        "Answer realistic buyer objections about scope, process, pricing/value, timing, "
+        "and decision concerns."
+    ),
+    "conclusion_cta": (
+        "Summarize the decision value and close with one clear next step."
+    ),
+}
+
+COMMERCIAL_ROLE_TAXONOMY_AXIS = {
+    "intro": "introduction",
+    "service_explanation": "brand_offer",
+    "features_included": "brand_features",
+    "brand_differentiator": "brand_support",
+    "proof": "brand_projects",
+    "comparison": "comparison",
+    "process": "brand_process",
+    "cost_value": "pricing",
+    "faq": "faq",
+    "cta": "conclusion",
+}
+
+COMMERCIAL_ROLE_EXECUTION_MODE = {
+    "intro": "onboarding_context",
+    "service_explanation": "brand_service_catalog",
+    "features_included": "brand_evidence_application",
+    "brand_differentiator": "brand_evidence_application",
+    "proof": "brand_project_examples",
+    "process": "brand_process_delivery",
+    "comparison": "comparison_decision",
+    "faq": "buyer_guidance",
+    "cta": "buyer_guidance",
+}
+
+_AXIS_EXECUTION_MODE = {
+    "brand_offer": "brand_service_catalog",
+    "brand_features": "brand_evidence_application",
+    "brand_support": "brand_evidence_application",
+    "brand_projects": "brand_project_examples",
+    "brand_process": "brand_process_delivery",
+    "comparison": "comparison_decision",
+    "pricing": "market_practical",
+    "faq": "buyer_guidance",
+    "conclusion": "buyer_guidance",
+}
+
+
+def resolve_commercial_writer_execution_mode(section: dict) -> str:
+    """Pick writer execution mode from commercial role/axis; avoid taxonomy_breakdown drift."""
+    role = str((section or {}).get("commercial_section_role") or "").lower()
+    explicit = str((section or {}).get("execution_mode") or "").strip()
+    if explicit and explicit != "taxonomy_breakdown":
+        return explicit
+    if role:
+        role_mode = COMMERCIAL_ROLE_EXECUTION_MODE.get(role)
+        if role_mode:
+            return role_mode
+    axis = str((section or {}).get("taxonomy_axis") or "").casefold()
+    return _AXIS_EXECUTION_MODE.get(axis, explicit or "taxonomy_breakdown")
+
+
+SEMANTIC_EXECUTION_LAYER = {
+    "market_practical": {
+        "execution_mode": "market_practical",
+        "semantic_goal": "realistic cost and value expectations",
+        "decision_frame": "budget vs quality vs location",
+        "content_behavior": "Focus on data-driven tiers, relative pricing logic, and value-for-money trade-offs."
+    },
+    "taxonomy_breakdown": {
+        "execution_mode": "taxonomy_breakdown",
+        "semantic_goal": "clear categorization of options",
+        "decision_frame": "choosing the right type for the need",
+        "content_behavior": "Define distinct categories based on functional or structural differences. Avoid overlap."
+    },
+    "locality_analysis": {
+        "execution_mode": "locality_analysis",
+        "semantic_goal": "match area to resident lifestyle",
+        "decision_frame": "accessibility vs quietness vs services",
+        "content_behavior": "Analyze specific neighborhood vibes, proximity to key infrastructure, and resident profiles."
+    },
+    "buyer_guidance": {
+        "execution_mode": "buyer_guidance",
+        "semantic_goal": "actionable decision support",
+        "decision_frame": "step-by-step readiness",
+        "content_behavior": "Walk the reader through a specific process or checklist. Reduce friction and ambiguity."
+    },
+    "comparison_decision": {
+        "execution_mode": "comparison_decision",
+        "semantic_goal": "evaluate specific trade-offs",
+        "decision_frame": "suitability differences between options",
+        "content_behavior": "Directly compare A vs B vs C based on user-centric criteria. Highlight the 'winner' for each persona."
+    },
+    "trust_proof": {
+        "execution_mode": "trust_proof",
+        "semantic_goal": "establish reliability and safety",
+        "decision_frame": "risk reduction",
+        "content_behavior": "Showcase concrete evidence, signals, or process transparency that validates the entity's claims."
+    },
+    "brand_service_catalog": {
+        "execution_mode": "brand_service_catalog",
+        "semantic_goal": "brand service clarity",
+        "decision_frame": "matching observed services to the reader's need",
+        "content_behavior": "Describe actual brand-provided services and capabilities from observed evidence; do not write generic provider-selection advice."
+    },
+    "brand_evidence_application": {
+        "execution_mode": "brand_evidence_application",
+        "semantic_goal": "evidence-backed brand fit",
+        "decision_frame": "using observed brand evidence to explain fit",
+        "content_behavior": "Ground brand differentiation in observed services, technologies, workflow, or projects."
+    },
+    "brand_project_examples": {
+        "execution_mode": "brand_project_examples",
+        "semantic_goal": "observed project proof",
+        "decision_frame": "using named project or case evidence",
+        "content_behavior": "Use actual observed project/client names and snippets; do not substitute generic project-evaluation advice."
+    },
+    "brand_process_delivery": {
+        "execution_mode": "brand_process_delivery",
+        "semantic_goal": "observed delivery workflow",
+        "decision_frame": "how the reader works with the brand",
+        "content_behavior": "Explain the brand's observed workflow stages as a practical collaboration path."
+    },
+    "onboarding_context": {
+        "execution_mode": "onboarding_context",
+        "semantic_goal": "establish the reader's orientation",
+        "decision_frame": "problem awareness to solution path",
+        "content_behavior": "Hook the reader by validating their current situation and promising a clear resolution path."
+    }
+}
+
+WRITER_MODE_PROFILES = {
+    "market_practical": (
+        "- **REASONING STYLE**: Focus on budget trade-offs and realistic value. Emphasize why price variations occur.\n"
+        "- **EVIDENCE**: Use relative pricing tiers and observed data carefully. Explain the logic of 'Value for Money'.\n"
+        "- **PRIORITY**: Avoid generic definitions. Focus on actionable budget expectations and cost drivers."
+    ),
+    "locality_analysis": (
+        "- **REASONING STYLE**: Connect geography to resident lifestyle and daily needs (accessibility, services).\n"
+        "- **EVIDENCE**: Highlight local anchors and specific neighborhood 'vibes'.\n"
+        "- **PRIORITY**: Avoid dry geographic summaries. Focus on what it's actually like to live in the area."
+    ),
+    "taxonomy_breakdown": (
+        "- **REASONING STYLE**: Use clear classification logic based on functional or structural differences.\n"
+        "- **EVIDENCE**: Match category features directly to specific user situations or personas.\n"
+        "- **PRIORITY**: Avoid overlap. Ensure each category feels distinct and purposeful."
+    ),
+    "comparison_decision": (
+        "- **REASONING STYLE**: Evaluate direct trade-offs between options. Explain 'when A wins' vs 'when B wins'.\n"
+        "- **EVIDENCE**: Use side-by-side suitability criteria rather than serial descriptions.\n"
+        "- **PRIORITY**: Help the reader choose. Avoid summarizing without taking a stance on suitability."
+    ),
+    "buyer_guidance": (
+        "- **REASONING STYLE**: Adopt a step-by-step advisory tone. Focus on readiness and selection criteria.\n"
+        "- **EVIDENCE**: Use checklists, 'if-then' mappings, and practical tips to reduce buyer friction.\n"
+        "- **PRIORITY**: Reduce confusion. Avoid encyclopedic or overly academic explanations."
+    ),
+    "trust_proof": (
+        "- **REASONING STYLE**: Emphasize verification and signals. Use validation-oriented language.\n"
+        "- **EVIDENCE**: Focus on process transparency, concrete signals, and reliability indicators.\n"
+        "- **PRIORITY**: Build confidence. Avoid aggressive promotion; let the evidence speak for itself."
+    ),
+    "brand_service_catalog": (
+        "- **REASONING STYLE**: Treat this as the brand's service catalog, not a market checklist.\n"
+        "- **EVIDENCE**: Use observed service names, capabilities, and source snippets directly.\n"
+        "- **PRIORITY**: Explain what the brand provides under each heading; avoid 'make sure/ask/check' advice as the main body."
+    ),
+    "brand_evidence_application": (
+        "- **REASONING STYLE**: Explain brand fit through observed evidence, not generic praise.\n"
+        "- **EVIDENCE**: Use named services, technologies, workflow stages, and project examples when available.\n"
+        "- **PRIORITY**: Keep the section specific to the brand and avoid unsupported geography or best/top claims."
+    ),
+    "brand_project_examples": (
+        "- **REASONING STYLE**: Fulfill the project/example promise with actual observed projects or client examples.\n"
+        "- **EVIDENCE**: Mention project/client names exactly as provided by the evidence brief.\n"
+        "- **PRIORITY**: Do not replace missing or weak project details with generic project-evaluation criteria."
+    ),
+    "brand_process_delivery": (
+        "- **REASONING STYLE**: Present the observed collaboration or delivery workflow as a practical sequence.\n"
+        "- **EVIDENCE**: Use observed stages such as consultation, planning, design, development, execution, delivery, testing, or launch.\n"
+        "- **PRIORITY**: Explain how the reader works with the brand; avoid generic vendor-selection checklists."
+    ),
+    "onboarding_context": (
+        "- **REASONING STYLE**: Orient the reader quickly by validating their problem and outlining the solution path.\n"
+        "- **EVIDENCE**: High-level landscape overview without deep technical data.\n"
+        "- **PRIORITY**: Establish why the topic matters now. Save details for body sections."
+    )
+}
+
+REGIONAL_ARABIC_PROFILES = {
+    "egypt": (
+        "- **VOCABULARY**: Prefer 'مواصلات', 'شقق', 'مناطق حيوية', 'إيجار شهري', 'مرافق'.\n"
+        "- **CONTEXT**: Anchor logic to city-wide movement and service density.\n"
+        "- **AVOID**: Spoken dialect like 'هتلاقي', 'لو عايز', 'بتدور', 'بتاع', 'عشان'."
+    ),
+    "saudi": (
+        "- **VOCABULARY**: Prefer 'عوائل', 'الدوام', 'الإيجار السنوي', 'المجمعات', 'أفراد'.\n"
+        "- **CONTEXT**: Anchor logic to family needs, commute (الدوام), and neighborhood centers.\n"
+        "- **AVOID**: Spoken dialect like 'ودك', 'بتلقى', 'مرة ممتاز', 'شلون', 'وشو'."
+    ),
+    "uae": (
+        "- **VOCABULARY**: Prefer 'مجمعات سكنية', 'سهولة التنقل', 'المترو', 'خيارات سكن', 'وجهات'.\n"
+        "- **CONTEXT**: Anchor logic to global connectivity, modern infrastructure, and diverse housing options.\n"
+        "- **AVOID**: Dialect-heavy prose or informal slang."
+    )
+}
+
+STRATEGY_UNSAFE_PHRASES = [
+    "performance-first execution",
+    "comparing providers",
+    "fear of losing leads",
+    "business outcomes",
+    "implementation path",
+    "delivery model",
+    "provider selection",
+    "digital presence",
+    "broad market opportunity",
+]
+
+INVESTMENT_HEAVY_PHRASES = [
+    "roi",
+    "investment return",
+    "yield",
+    "capital appreciation",
+    "resale return",
+    "investment opportunity",
+    "investment",
+]
+
+LEGAL_HEAVY_PHRASES = [
+    "legal verification",
+    "compliance",
+    "documentation checklist",
+    "contract execution",
+    "legal",
+]
+
+class StrategyService:
+    """Service dedicated to intent detection, brand style analysis, and content strategy."""
+
+    def __init__(self, ai_client, title_generator, jinja_env, intent_template=None):
+        self.ai_client = ai_client
+        self.title_generator = title_generator
+        self.env = jinja_env
+        self.intent_template = intent_template
+        self.style_extractor = StyleExtractor(ai_client)
+
+        self.strategy_map = {
+            "brand_commercial": "00_content_strategy_brand_commercial_observed_v2.txt",
+            "informational": "00_content_strategy_informational.txt",
+            "comparison": "00_content_strategy_comparison.txt",
+        }
+
+    SUPPORTED_LANGS = {"ar", "en", "de", "fr", "es", "it", "tr", "pt"}
+    LANG_ALIASES = {
+        "arabic": "ar", "english": "en", "german": "de",
+        "zh-cn": "zh", "zh-tw": "zh", "pt-br": "pt",
+        "en-us": "en", "en-gb": "en"
+    }
+
+    def normalize_lang(self, lang: Optional[str]) -> Optional[str]:
+        """Normalizes language codes."""
+        if not lang:
+            return None
+        code = str(lang).strip().lower().replace("_", "-")
+        code = self.LANG_ALIASES.get(code, code)
+        code = code.split("-")[0]
+        return code if code in self.SUPPORTED_LANGS else None
+
+    def detect_title_language(self, raw_title: str) -> Optional[str]:
+        """Detects language from title."""
+        title = (raw_title or "").strip()
+        if not title:
+            return None
+
+        # Heuristic for Arabic script
+        if re.search(r"[\u0600-\u06FF]", title):
+            return "ar"
+
+        if len(re.findall(r"\w+", title)) < 2:
+            return None
+
+        try:
+            from langdetect import detect_langs
+            candidates = detect_langs(title)
+            if not candidates:
+                return None
+            top = candidates[0]
+            if float(top.prob) < 0.70:
+                return None
+            return self.normalize_lang(top.lang)
+        except Exception as e:
+            return None
+
+    def resolve_article_language(self, raw_title: str, user_lang: Optional[str]) -> str:
+        """Resolves the best article language."""
+        normalized_user = self.normalize_lang(user_lang)
+        if normalized_user:
+            return normalized_user
+
+        detected = self.detect_title_language(raw_title)
+        if detected:
+            return detected
+
+        return "en"
+
+    def _keyword_has_provider_service_commercial_signals(self, primary_keyword: str) -> bool:
+        """Narrow deterministic commercial signal check; avoids blind 'best' conversion."""
+        normalized = (primary_keyword or "").lower()
+        tokens = {
+            token
+            for token in re.split(r"[^\w\u0600-\u06FF]+", normalized)
+            if token
+        }
+        if not tokens:
+            return False
+
+        quality_signals = {
+            "best", "top", "cheapest", "compare", "review", "reviews",
+            "أفضل", "افضل", "أحسن", "احسن", "أرخص", "ارخص", "مقارنة",
+        }
+        provider_signals = {
+            "company", "agency", "provider", "office", "clinic", "firm",
+            "شركة", "شركات", "وكالة", "مكتب", "عيادة", "مزود", "مركز",
+        }
+        service_signals = {
+            "service", "services", "price", "prices", "cost", "quote",
+            "خدمة", "خدمات", "سعر", "أسعار", "اسعار", "تكلفة", "تصميم",
+            "تنظيف", "محاماة", "تسويق", "برمجة", "تطوير", "صيانة",
+        }
+
+        has_quality = bool(tokens & quality_signals)
+        has_provider = bool(tokens & provider_signals)
+        has_service = bool(tokens & service_signals)
+        return (has_quality and has_provider) or (has_provider and has_service)
+
+    def _normalize_intent_label(self, value: Optional[str]) -> str:
+        """Normalize free-form model intent labels into the internal enum."""
+        normalized = str(value or "").strip().lower()
+        if not normalized:
+            return ""
+        if "educational_comparative" in normalized:
+            return "educational_comparative"
+        if "commercial_comparative" in normalized:
+            return "commercial_comparative"
+        if any(term in normalized for term in ("comparison", "comparative")):
+            return "comparative"
+        if any(term in normalized for term in ("commercial", "transactional")):
+            return "commercial"
+        if any(term in normalized for term in ("informational", "information")):
+            return "informational"
+        return normalized
+
+    def _get_serp_intent_evidence(self, state: Dict[str, Any]) -> Dict[str, Any]:
+        """Return SERP-derived intent and confidence when available."""
+        intent_layer = (
+            state.get("seo_intelligence", {})
+                .get("market_analysis", {})
+                .get("intent_analysis", {})
+        )
+        raw_intent = intent_layer.get("confirmed_intent", "")
+        try:
+            confidence = float(intent_layer.get("intent_confidence_score", 0) or 0)
+        except (TypeError, ValueError):
+            confidence = 0.0
+
+        return {
+            "raw_intent": raw_intent,
+            "intent": self._normalize_intent_label(raw_intent),
+            "confidence": confidence,
+        }
+
+    def _serp_intent_locks_resolution(self, serp_intent: str, confidence: float, primary_keyword: str) -> bool:
+        """Trust strong SERP intent unless the keyword has explicit provider/service signals."""
+        if confidence <= 0.6 or serp_intent not in {"informational", "commercial", "comparative"}:
+            return False
+        if serp_intent == "informational" and self._keyword_has_provider_service_commercial_signals(primary_keyword):
+            return False
+        return True
+
+    def resolve_content_type(
+        self,
+        intent: Optional[str],
+        brand_present: bool,
+        requested_content_type: Optional[str],
+        primary_keyword: str,
+        workflow_mode: str = "core",
+    ) -> str:
+        """Single resolver for content_type so individual steps do not drift."""
+        requested = (requested_content_type or "").strip().lower()
+        if workflow_mode == "advanced" and requested:
+            if requested in {"commercial", "brand_commercial"}:
+                return "brand_commercial"
+            if requested in {"comparison", "comparative"}:
+                return "comparison"
+            return "informational"
+
+        normalized_intent = (intent or "").strip().lower()
+        keyword_commercial = self._keyword_has_provider_service_commercial_signals(primary_keyword)
+
+        # Educational Comparative inherits Informational behavior but keeps Comparative layout instructions
+        if normalized_intent == "educational_comparative":
+            return "informational"
+
+        if any(value in normalized_intent for value in ("comparison", "comparative", "commercial_comparative")):
+            return "comparison"
+        if any(value in normalized_intent for value in ("commercial", "transactional")) or keyword_commercial:
+            return "brand_commercial"
+        if brand_present and keyword_commercial:
+            return "brand_commercial"
+        return "informational"
+
+    async def run_intent_title(self, state: Dict[str, Any]) -> Dict[str, Any]:
+        """Classify user intent and refine the title via AI."""
+        raw_title = state.get("raw_title") or "Untitled"
+        primary_keyword = state.get("primary_keyword") or raw_title
+        article_language = state.get("article_language") or "en"
+        area = state.get("area")
+        serp_data = state.get("serp_data", {})
+        serp_evidence = self._get_serp_intent_evidence(state)
+
+        top_titles = [
+            r.get("title", "")
+            for r in serp_data.get("top_results", [])
+            if isinstance(r, dict)
+        ][:5]
+
+        cta_styles = [
+            r.get("cta_style", "")
+            for r in serp_data.get("top_results", [])
+            if isinstance(r, dict)
+        ]
+
+        res = await self.title_generator.generate(
+            raw_title=raw_title,
+            primary_keyword=primary_keyword,
+            article_language=article_language,
+            serp_titles=top_titles,
+            serp_cta_styles=cta_styles,
+            area=area,
+            brand_name=state.get("brand_name", ""),
+            serp_confirmed_intent=serp_evidence.get("raw_intent") or serp_evidence.get("intent"),
+            serp_intent_confidence=serp_evidence.get("confidence", 0.0),
+        )
+
+        if state.get("workflow_logger"):
+            state["workflow_logger"].log_ai_call(
+                step_name="intent_title",
+                prompt=res.get("prompt"),
+                response=res,
+                tokens=res.get("metadata", {}),
+                duration=res.get("metadata", {}).get("duration", 0)
+            )
+
+        intent_raw = res.get("intent", "Informational")
+        optimized_title = res.get("optimized_title", raw_title)
+
+        serp_intent = serp_evidence.get("intent", "")
+        serp_confidence = serp_evidence.get("confidence", 0.0)
+        serp_locks_intent = self._serp_intent_locks_resolution(
+            serp_intent,
+            serp_confidence,
+            primary_keyword,
+        )
+
+        intent_normalized = self._normalize_intent_label(intent_raw) or "informational"
+        if serp_locks_intent:
+            intent_normalized = serp_intent
+        state["intent"] = intent_normalized
+
+        # 1. Run Strategic AI Classifier (Universal Thinking)
+        detected_intent = await self.detect_intent_ai(raw_title, primary_keyword, state=state)
+        detected_intent_normalized = self._normalize_intent_label(detected_intent)
+
+        # 2. Reconcile Intents (Combining Title Intent and Strategic Logic)
+        # A strong observed SERP intent wins unless the keyword itself has explicit
+        # commercial provider/service signals. A brand name alone is not enough.
+        reconciliation_source = "union"
+        if serp_locks_intent:
+            final_intent = intent_normalized
+            resolver_intent = final_intent
+            reconciliation_source = f"serp_lock(confidence={serp_confidence})"
+        else:
+            all_intents = f"{intent_normalized} {detected_intent_normalized}"
+            if "comparative" in all_intents or "comparison" in all_intents:
+                final_intent = "comparative"
+                reconciliation_source = "keyword_comparative"
+            elif "commercial" in all_intents or "transactional" in all_intents:
+                final_intent = "commercial"
+                reconciliation_source = "keyword_commercial"
+            else:
+                final_intent = "informational"
+                reconciliation_source = "keyword_informational"
+            resolver_intent = all_intents
+
+        brand_name = state.get("brand_name")
+        brand_present = bool(brand_name and brand_name.lower() not in ["not provided", "none", ""])
+        state["intent"] = final_intent
+        state["detected_intent_ai"] = detected_intent_normalized
+        state["intent_reconciliation_source"] = reconciliation_source
+        state["content_type"] = self.resolve_content_type(
+            intent=resolver_intent,
+            brand_present=brand_present,
+            requested_content_type=state.get("article_type"),
+            primary_keyword=primary_keyword,
+            workflow_mode=state.get("workflow_mode", "core"),
+        )
+
+        logger.info(
+            "[intent_reconciliation] source=%s serp_intent=%s serp_confidence=%s "
+            "title_ai=%s classifier_ai=%s final_intent=%s content_type=%s",
+            reconciliation_source, serp_intent, serp_confidence,
+            intent_normalized, detected_intent_normalized,
+            final_intent, state["content_type"],
+        )
+
+        state["input_data"]["title"] = finalize_article_title(
+            optimized_title,
+            keyword=primary_keyword,
+            intent=final_intent,
+            content_type=state.get("content_type", ""),
+            raw_title=raw_title,
+        )
+        return state
+
+    async def run_style_analysis(self, state: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyzes the reference article/image to determine the brand's style."""
+        input_data = state.get("input_data", {})
+        ref_path = input_data.get("logo_reference_path")
+        style_ref = input_data.get("style_reference")
+
+        state["brand_visual_style"] = ""
+        state["style_blueprint"] = {}
+
+        # 1. Structural/Writing Style Analysis (from Article Reference)
+        if style_ref:
+            logger.info("Analyzing style reference article...")
+            blueprint = await self.style_extractor.extract_blueprint(style_ref)
+            state["style_blueprint"] = blueprint
+            logger.info(f"Style Blueprint extracted: {list(blueprint.keys())}")
+        else:
+            logger.info("[style_analysis] No style reference provided — skipping (style_blueprint=empty)")
+
+        # 2. Visual Style Analysis (from Logo Reference)
+        if ref_path and isinstance(ref_path, str) and os.path.exists(ref_path):
+            try:
+                style_res = await self.ai_client.describe_image_style(ref_path)
+                state["brand_visual_style"] = style_res.get("content", "") if isinstance(style_res, dict) else str(style_res)
+            except Exception as e:
+                logger.error(f"Failed to analyze reference image: {e}")
+                state["brand_visual_style"] = "Professional, modern corporate identity"
+        else:
+            logger.info("[style_analysis] No logo reference provided — skipping visual style (brand_visual_style=empty)")
+
+        return state
+
+    def _get_static_core_strategy(self, primary_keyword: str, content_type: str, area: str) -> Dict[str, Any]:
+        return self._normalize_content_strategy({}, primary_keyword, content_type, area)
+
+    async def run_content_strategy(self, state: Dict[str, Any]) -> Dict[str, Any]:
+        """Step 0: Develop the content strategy based on SERP analysis and intent."""
+
+        primary_keyword = state.get("primary_keyword")
+        intent = state.get("intent")
+        seo_intelligence = state.get("seo_intelligence", {})
+        content_type = state.get("content_type")
+        area = state.get("area") or "Global"
+
+        full_intel = seo_intelligence.get("market_analysis", {})
+        serp_intent = (
+            full_intel.get("intent_analysis", {}).get("confirmed_intent")
+            or intent
+        )
+        brand_name = state.get("brand_name")
+        brand_present = bool(brand_name and brand_name.lower() not in ["not provided", "none", ""])
+        state["content_type"] = self.resolve_content_type(
+            intent=serp_intent,
+            brand_present=brand_present,
+            requested_content_type=state.get("article_type"),
+            primary_keyword=primary_keyword or "",
+            workflow_mode=state.get("workflow_mode", "core"),
+        )
+        content_type = state["content_type"]
+
+        intent_layer = full_intel.get("intent_analysis", {})
+        structural_layer = full_intel.get("structural_intelligence", {})
+        market_insights = full_intel.get("market_insights", {})
+        brand_evidence_boundaries = state.get("brand_evidence_boundaries")
+        if not isinstance(brand_evidence_boundaries, dict):
+            try:
+                from src.services.brand_evidence_service import build_brand_evidence_boundaries
+                brand_evidence_boundaries = build_brand_evidence_boundaries(state)
+            except Exception:
+                brand_evidence_boundaries = {}
+            state["brand_evidence_boundaries"] = brand_evidence_boundaries
+
+        # Step 3A-1: read the single source of truth and inject into
+        # brand_evidence_boundaries so strategy decisions are grounded.
+        brand_ground_truth = state.get("brand_ground_truth", "")
+        try:
+            from src.services.brand_evidence_service import record_ground_truth_consumption
+            gt_record = record_ground_truth_consumption(state, "strategy")
+            logger.info(
+                "[ground_truth] strategy_ground_truth_used=%s chars=%s",
+                str(gt_record["used"]).lower(),
+                gt_record["markdown_chars"],
+            )
+        except Exception:
+            pass
+        if brand_ground_truth:
+            if isinstance(brand_evidence_boundaries, dict):
+                brand_evidence_boundaries["_brand_ground_truth"] = brand_ground_truth
+            logger.info(
+                "[ground_truth] Injected brand_ground_truth (%d chars) into strategy prompt",
+                len(brand_ground_truth),
+            )
+
+        clusters = market_insights.get("keyword_clusters", [])
+        if not clusters:
+            semantic = full_intel.get("semantic_assets", {})
+            lsi = semantic.get("lsi_keywords", [])
+            related = semantic.get("related_searches", [])
+
+            raw_fallback = [primary_keyword] + lsi[:5] + related[:5]
+            safe_fallback = []
+            for kw in raw_fallback:
+                if isinstance(kw, dict):
+                    safe_kw = kw.get("keyword") or kw.get("text", str(kw))
+                    safe_fallback.append(str(safe_kw))
+                else:
+                    safe_fallback.append(str(kw))
+
+            clusters = [{
+                "cluster_name": "Semantic Keywords Cluster (Safety Fallback)",
+                "keywords": list(dict.fromkeys(safe_fallback))
+            }]
+
+        template_name = self.strategy_map.get(
+            content_type,
+            self.strategy_map["informational"]
+        )
+        template = self.env.get_template(template_name)
+
+        prompt = template.render(
+            primary_keyword=primary_keyword,
+            intent=intent,
+            serp_intent_analysis=json.dumps(intent_layer),
+            serp_structural_intelligence=json.dumps(structural_layer),
+            serp_market_insights=json.dumps(market_insights),
+            brand_evidence_boundaries=json.dumps(brand_evidence_boundaries),
+            brand_knowledge_pack_context=state.get("brand_page_knowledge_pack_context", ""),
+            brand_ground_truth_md=state.get("brand_ground_truth", ""),
+            keyword_clusters=json.dumps(clusters),
+            content_type=content_type,
+            area=area,
+            prohibited_competitors=state.get("prohibited_competitors", [])
+        )
+
+        final_data = None
+        for attempt in range(3):
+            res = await self.ai_client.send(prompt, step="content_strategy")
+            raw = res["content"]
+            metadata = res["metadata"]
+
+            if state.get("workflow_logger"):
+                state["workflow_logger"].log_ai_call(
+                    step_name="content_strategy",
+                    prompt=metadata.get("prompt"),
+                    response=raw,
+                    tokens=metadata.get("tokens"),
+                    duration=metadata.get("duration", 0)
+                )
+
+            state["last_step_prompt"] = metadata["prompt"]
+            state["last_step_response"] = metadata["response"]
+            state["last_step_tokens"] = metadata["tokens"]
+            state["last_step_model"] = metadata.get("model", "unknown")
+
+            if not raw:
+                logger.error("Content Strategy AI returned empty response")
+                state["content_strategy"] = {}
+                return state
+
+            json_text = self._extract_first_json_object(raw)
+            parsed = recover_json(json_text)
+
+            if isinstance(parsed, dict) and parsed:
+                attempt_provenance = []
+                if content_type == "brand_commercial":
+                    parsed, attempt_provenance = self._apply_brand_evidence_boundaries(
+                        parsed,
+                        brand_evidence_boundaries,
+                        primary_keyword=primary_keyword,
+                        area=area,
+                        seo_intelligence=seo_intelligence,
+                    )
+                normalized = self._normalize_content_strategy(
+                    parsed, primary_keyword, content_type, area, seo_intelligence=seo_intelligence
+                )
+                if content_type == "brand_commercial":
+                    normalized, normalized_provenance = self._apply_brand_evidence_boundaries(
+                        normalized,
+                        brand_evidence_boundaries,
+                        primary_keyword=primary_keyword,
+                        area=area,
+                        seo_intelligence=seo_intelligence,
+                    )
+                    state["brand_strategy_provenance"] = self._merge_brand_strategy_provenance(
+                        attempt_provenance,
+                        normalized_provenance,
+                    )
+                if self._is_valid_content_strategy(normalized):
+                    final_data = normalized
+                    break
+
+            logger.warning(f"Content Strategy invalid on attempt {attempt+1}/3. Retrying...")
+            await asyncio.sleep(0.5)
+
+        if final_data is None:
+            logger.error("Content Strategy failed after retries. Using deterministic fallback.")
+            final_data = self._normalize_content_strategy(
+                {}, primary_keyword, content_type, area, seo_intelligence=seo_intelligence
+            )
+            if content_type == "brand_commercial":
+                final_data, provenance = self._apply_brand_evidence_boundaries(
+                    final_data,
+                    brand_evidence_boundaries,
+                    primary_keyword=primary_keyword,
+                    area=area,
+                    seo_intelligence=seo_intelligence,
+                )
+                state["brand_strategy_provenance"] = provenance
+
+        final_data = self._apply_dynamic_section_role_overrides(final_data, state)
+        if content_type == "brand_commercial":
+            final_data, final_provenance = self._apply_brand_evidence_boundaries(
+                final_data,
+                brand_evidence_boundaries,
+                primary_keyword=primary_keyword,
+                area=area,
+                seo_intelligence=seo_intelligence,
+            )
+            provenance = self._merge_brand_strategy_provenance(
+                state.get("brand_strategy_provenance", []),
+                final_provenance,
+            )
+            state["brand_strategy_provenance"] = provenance
+            for item in provenance:
+                logger.info(
+                    "[brand_strategy_provenance] signal=%s source=%s use=%s brand_claim_allowed=%s action=%s",
+                    item.get("category"),
+                    item.get("source"),
+                    item.get("allowed_use"),
+                    item.get("brand_claim_allowed"),
+                    item.get("action"),
+                )
+
+        state["content_strategy"] = final_data
+        return state
+
+    @staticmethod
+    def _merge_brand_strategy_provenance(*groups: Any) -> List[Dict[str, Any]]:
+        """Combine provenance passes without losing or repeating decisions."""
+        merged: List[Dict[str, Any]] = []
+        seen = set()
+        for group in groups:
+            if not isinstance(group, list):
+                continue
+            for item in group:
+                if not isinstance(item, dict):
+                    continue
+                key = (
+                    item.get("signal"),
+                    item.get("category"),
+                    item.get("source"),
+                    item.get("allowed_use"),
+                    item.get("brand_claim_allowed"),
+                    item.get("action"),
+                )
+                if key in seen:
+                    continue
+                seen.add(key)
+                merged.append(dict(item))
+        return merged
+
+    def _apply_dynamic_section_role_overrides(self, strategy: Dict[str, Any], state: Dict[str, Any]) -> Dict[str, Any]:
+        """Applies dynamic overrides to the section_role_map based on content context."""
+        out = dict(strategy)
+
+        content_type = state.get("content_type", "informational")
+        intent = state.get("intent", "")
+        primary_keyword = str(state.get("primary_keyword", ""))
+        area = state.get("area", "")
+        display_brand_name = state.get("display_brand_name", state.get("brand_name", ""))
+
+        # Dynamic guidance is kept out of content_strategy to preserve the locked JSON shape.
+        is_commercial_or_local = content_type in ["brand_commercial", "listing", "real_estate"] or any(sig in str(intent).lower() for sig in ["commercial", "local"])
+        is_property_rental = any(sig in str(intent).lower() or sig in primary_keyword or sig in content_type.lower() for sig in ["listing", "real_estate", "property", "rental", "hospitality", "عقار", "شقق", "فلل", "اراضي", "ايجار", "للايجار"])
+
+        if area and area in primary_keyword and is_commercial_or_local:
+            if is_property_rental:
+                state["location_section_guidance"] = (
+                    "Location sections must describe entity/listing/service availability or suitability across locations, neighborhoods, or areas. "
+                    "The H2 and all H3s must stay anchored to the main entity/listing/service and must not describe areas generically."
+                )
+            else:
+                state["location_section_guidance"] = (
+                    "Describe service availability or coverage areas for the main entity. Stay focused on the service provision in those areas."
+                )
+
+        # Structural Enforcements List
+        enforced_structural_rules = []
+        if area and area in primary_keyword and is_commercial_or_local and is_property_rental:
+            enforced_structural_rules.append("LOCATION ENFORCEMENT: Create a dedicated H2 section about the main entity/listing/service availability or options across locations/neighborhoods/areas. The H2 and all H3s must stay anchored to the main entity/listing/service and must not describe areas generically.")
+
+        if content_type == "brand_commercial" and display_brand_name:
+            enforced_structural_rules.append(f"BRAND PROCESS ENFORCEMENT: The process H2 MUST incorporate the '{display_brand_name}' assisted journey or entity journey.")
+
+        state["enforced_structural_rules"] = enforced_structural_rules
+        return out
+
+    async def detect_intent_ai(self, raw_title: str, primary_keyword: str, state: Dict[str, Any] = None) -> str:
+        """AI classifier to detect intent (informational, commercial, etc.) using strategic JSON logic."""
+        import re
+
+        if not getattr(self, 'intent_template', None):
+            return "informational"
+
+        serp_evidence = self._get_serp_intent_evidence(state or {})
+        prompt = self.intent_template.render(
+            raw_title=raw_title,
+            primary_keyword=primary_keyword,
+            brand_name=state.get("brand_name", "Not provided") if state else "Not provided",
+            serp_confirmed_intent=serp_evidence.get("raw_intent", ""),
+            serp_intent_confidence=serp_evidence.get("confidence", 0.0),
+            current_year=str(datetime.now().year)
+        )
+
+        res = await self.ai_client.send(prompt, step="intent")
+        content = res["content"]
+
+        # Extract JSON from potential Markdown blocks
+        try:
+            json_str = re.search(r'\{.*\}', content, re.DOTALL).group(0)
+            data = recover_json(json_str)
+            if not data:
+                # If extraction failed, try recovering from the full content
+                data = recover_json(content)
+
+            intent = (data or {}).get("intent", "informational").lower().strip()
+            reasoning = (data or {}).get("reasoning", "")
+            logger.info(f"[Intent_Intelligence] Classified as '{intent}' because: {reasoning}")
+        except Exception as e:
+            logger.warning(f"Failed to parse strategic intent JSON, falling back to raw: {e}")
+            intent = content.strip().lower()
+
+        if state is not None:
+             state["last_step_prompt"] = res["metadata"]["prompt"]
+             state["last_step_response"] = res["metadata"]["response"]
+             state["last_step_tokens"] = res["metadata"]["tokens"]
+             state["last_step_model"] = res["metadata"].get("model", "unknown")
+             # NEW: Store the detected intent in state for the workflow router
+             state["intent"] = intent
+
+        return intent
+
+    def _normalize_token(self, value: str) -> str:
+        return re.sub(r"\s+", " ", str(value or "").strip().lower())
+
+    def _keyword_supports_heavy_framing(self, primary_keyword: str, seo_intelligence: Optional[Dict[str, Any]] = None) -> bool:
+        keyword_norm = self._normalize_token(primary_keyword)
+        heavy_terms = INVESTMENT_HEAVY_PHRASES + LEGAL_HEAVY_PHRASES
+        if any(term in keyword_norm for term in heavy_terms):
+            return True
+
+        market_analysis = (seo_intelligence or {}).get("market_analysis", {}) if isinstance(seo_intelligence, dict) else {}
+        market_insights = market_analysis.get("market_insights", {}) if isinstance(market_analysis, dict) else {}
+        observations = market_insights.get("topic_observations", {}) if isinstance(market_insights, dict) else {}
+
+        for bucket_name in ("core_recurring_topics", "secondary_mentions"):
+            for topic in observations.get(bucket_name, []) or []:
+                topic_text = self._normalize_token(topic.get("topic", ""))
+                frequency = int(topic.get("frequency", 0) or 0)
+                confidence = self._normalize_token(topic.get("confidence", ""))
+                if any(term in topic_text for term in heavy_terms) and (frequency >= 2 or confidence == "high"):
+                    return True
+
+        return False
+
+    def _derive_head_entity(self, primary_keyword: str, area: str = "") -> str:
+        return self._derive_entity_terms(primary_keyword, area).get("head", "")
+
+    def _normalize_arabic(self, text: str) -> str:
+        if not text: return ""
+        replacements = {"أ": "ا", "إ": "ا", "آ": "ا", "ة": "ه", "ى": "ي", "ئ": "ء", "ؤ": "ء"}
+        for old, new in replacements.items():
+            text = text.replace(old, new)
+        return text.lower()
+
+    def _derive_entity_terms(self, primary_keyword: str, area: str = "") -> Dict[str, str]:
+        text = str(primary_keyword or "").strip()
+        if not text:
+            return {"head": "", "phrase": ""}
+
+        if area:
+            text = re.sub(re.escape(area), " ", text, flags=re.IGNORECASE)
+
+        tokens = re.findall(r"[\w\u0600-\u06FF]+", text, re.UNICODE)
+        normalized_tokens = [self._normalize_arabic(token) for token in tokens]
+
+        stop_tokens = {
+            "for", "sale", "buy", "buying", "in", "vs", "best", "top", "cheap", "cheapest",
+            "what", "how", "guide", "review", "compare", "comparison", "near", "new",
+            "في", "فى", "للبيع", "شراء", "مقارنة", "افضل", "أفضل", "ارخص", "أرخص", "دليل",
+            "ما", "كيف", "هل", "سعر", "اسعار", "أسعار",
+        }
+        strong_property_heads = {
+            "شقه", "شقق", "عقار", "عقارات", "وحده", "وحدات", "محل", "محلات",
+            "فيلا", "فلل", "فيلات", "شاليه", "شاليهات", "ارض", "اراضي",
+            "apartment", "apartments", "flat", "flats", "villa", "villas", "chalet", "chalets",
+            "shop", "shops", "store", "stores", "land", "lands", "plot", "plots",
+        }
+        ambiguous_property_heads = {"مكتب", "مكاتب", "office", "offices"}
+        intent_tokens = {
+            "بيع", "للبيع", "شراء", "ايجار", "للايجار", "استئجار", "حجز", "للحجز",
+            "sale", "rent", "rental", "booking", "book",
+        }
+        has_arabic = any("\u0600" <= c <= "\u06FF" for c in text)
+        boundary_tokens = {"vs", "مقارنة", "مقارنه"}
+        if not has_arabic:
+            boundary_tokens |= {"in", "near", "في", "فى"}
+        compound_service_heads = {"شركه", "مكتب", "عياده", "مركز", "وكاله", "مؤسسه", "منصه", "خدمه", "خدمات"}
+
+        head = ""
+        head_index = -1
+        for idx, normalized in enumerate(normalized_tokens):
+            if normalized and normalized not in stop_tokens:
+                head = tokens[idx]
+                head_index = idx
+                break
+
+        if not head:
+            fallback = tokens[0] if tokens else text
+            return {"head": fallback, "phrase": fallback}
+
+        phrase_tokens = [head]
+        normalized_head = self._normalize_arabic(head)
+        has_property_intent = any(token in intent_tokens for token in normalized_tokens)
+        is_property_like = normalized_head in strong_property_heads or (
+            normalized_head in ambiguous_property_heads and has_property_intent
+        )
+
+        for idx in range(head_index + 1, len(tokens)):
+            token = tokens[idx]
+            normalized = normalized_tokens[idx]
+            if not normalized:
+                continue
+            if normalized in boundary_tokens or re.fullmatch(r"\d{4}", normalized):
+                break
+
+            if is_property_like:
+                break
+
+            phrase_tokens.append(token)
+
+        phrase = " ".join(phrase_tokens).strip() or head
+        return {"head": head, "phrase": phrase}
+
+    def _build_brand_market_angle(self, primary_keyword: str, area: str) -> str:
+        entity = self._derive_entity_terms(primary_keyword, area).get("phrase") or primary_keyword
+        place = area or "the target area"
+        return (
+            f"Help the reader compare {entity} in {place} by practical decision factors "
+            f"such as available options, fit, price or value, proof, and the clearest next step."
+        )
+
+    def _build_brand_primary_angle(self, primary_keyword: str, area: str) -> str:
+        entity = self._derive_entity_terms(primary_keyword, area).get("phrase") or primary_keyword
+        place = area or "the target area"
+        return (
+            f"Help the reader decide how to compare and choose {entity} in {place} "
+            f"based on practical buying factors."
+        )
+
+    def _build_brand_conversion_strategy(self) -> str:
+        return (
+            "Clarify the offer -> show buyer-facing features -> provide practical proof "
+            "-> help compare real options -> reduce friction in the buying path -> "
+            "answer objections -> close with a confident final CTA."
+        )
+
+    def _build_brand_local_strategy(self, primary_keyword: str, area: str) -> str:
+        entity = self._derive_entity_terms(primary_keyword, area).get("phrase") or primary_keyword
+        place = area or "the target area"
+        return (
+            f"Keep local references focused on {place} only when they help the reader "
+            f"compare, choose, or buy {entity} more confidently."
+        )
+
+    def _build_brand_emotional_trigger(self) -> str:
+        return "Confidence from understanding the options clearly and avoiding the wrong fit."
+
+    def _strategy_sensitive_categories(self, text: str) -> List[str]:
+        value = self._normalize_token(text)
+        categories = []
+        patterns = {
+            "testimonials": (
+                r"\b(?:testimonials?|customer reviews?|client reviews?|customer stories|client experiences?)\b|"
+                r"(?:شهادات العملاء|تجارب العملاء|تجارب عملاء|آراء العملاء|تقييمات العملاء)"
+            ),
+            "awards": (
+                r"\b(?:award-winning|awards?|winner|awarded)\b|"
+                r"(?:جائزة|جوائز|حائز|فائز)"
+            ),
+            "certifications": (
+                r"\b(?:certified|certification|accredited|licensed|iso\s*\d*)\b|"
+                r"(?:اعتماد|معتمد|مرخص|شهادة مهنية|شهادة اعتماد)"
+            ),
+            "partnerships": (
+                r"\b(?:official partner|certified partner|partnerships?|partner program)\b|"
+                r"(?:شريك رسمي|شريك معتمد|شراكة|شراكات)"
+            ),
+            "brand_pricing": (
+                r"\b(?:pricing examples?|brand pricing|package tiers?|prices? start|starting at)\b|"
+                r"(?:أسعار البراند|أسعار الشركة|باقات الشركة|أسعار تبدأ|تبدأ الأسعار)"
+            ),
+            "local_presence": (
+                r"\b(?:local presence|local office|local branch|local team|local support|"
+                r"market expertise|understands? (?:the )?local market)\b|"
+                r"(?:حضور محلي|مكتب محلي|فرع محلي|فريق محلي|دعم محلي|"
+                r"خبرة في السوق|فهم السوق|فهم احتياجات العملاء في)"
+            ),
+            "projects": r"\b(?:projects?|portfolio|case studies?|case study)\b|(?:مشروع|مشاريع|أعمال|نماذج منجزة)",
+        }
+        for category, pattern in patterns.items():
+            if re.search(pattern, value, re.IGNORECASE):
+                categories.append(category)
+        return categories
+
+    def _serp_mentions_sensitive_category(
+        self,
+        category: str,
+        seo_intelligence: Optional[Dict[str, Any]],
+    ) -> bool:
+        market_insights = (
+            (seo_intelligence or {}).get("market_analysis", {}).get("market_insights", {})
+            if isinstance(seo_intelligence, dict)
+            else {}
+        )
+        blob = json.dumps(market_insights, ensure_ascii=False)
+        return category in self._strategy_sensitive_categories(blob)
+
+    def _apply_brand_evidence_boundaries(
+        self,
+        strategy: Dict[str, Any],
+        boundaries: Optional[Dict[str, Any]],
+        *,
+        primary_keyword: str,
+        area: str,
+        seo_intelligence: Optional[Dict[str, Any]] = None,
+    ) -> tuple[Dict[str, Any], List[Dict[str, Any]]]:
+        """Keep market observations from becoming unsupported brand proof."""
+        out = dict(strategy or {})
+        limits = dict(boundaries or {})
+        provenance: List[Dict[str, Any]] = []
+        sensitive_keys = {
+            "testimonials",
+            "awards",
+            "certifications",
+            "partnerships",
+            "brand_pricing",
+            "local_presence",
+            "projects",
+        }
+
+        def allowed(category: str) -> bool:
+            return bool(limits.get(category))
+
+        def record(category: str, value: str, action: str, claim_allowed: bool) -> None:
+            source = "brand_pack" if claim_allowed else (
+                "SERP" if self._serp_mentions_sensitive_category(category, seo_intelligence) else "strategy_candidate"
+            )
+            provenance.append({
+                "signal": str(value or "")[:240],
+                "category": category,
+                "source": source,
+                "allowed_use": "brand_proof" if claim_allowed else (
+                    "market_topic" if source == "SERP" else "none"
+                ),
+                "brand_claim_allowed": claim_allowed,
+                "action": action,
+            })
+
+        # Patterns that indicate archive/listing evidence rather than specific project details
+        _archive_patterns = re.compile(
+            r"\b(archive|listing|catalog|gallery|browse|view all|show all|all projects|"
+            r"all work|our work|our projects|case studies?|portfolio|our portfolio)\b",
+            re.IGNORECASE,
+        )
+
+        for field in ("supported_eeat_signals", "supported_differentiators", "supported_proof_points"):
+            retained = []
+            for value in out.get(field, []) or []:
+                text = str(value or "").strip()
+                # Reject archive-derived evidence (generic listing, not specific project)
+                if field in ("supported_proof_points", "supported_differentiators"):
+                    if _archive_patterns.search(text) and len(text) < 60:
+                        record("projects", text, f"removed_from_{field}_archive_derived", False)
+                        continue
+                categories = set(self._strategy_sensitive_categories(text)) & sensitive_keys
+                blocked = [category for category in categories if not allowed(category)]
+                if blocked:
+                    for category in blocked:
+                        record(category, text, f"removed_from_{field}", False)
+                    continue
+                retained.append(text)
+                for category in categories:
+                    record(category, text, f"retained_in_{field}", True)
+            out[field] = retained
+
+        conversion_text = str(out.get("conversion_strategy") or "")
+        conversion_categories = set(self._strategy_sensitive_categories(conversion_text)) & sensitive_keys
+        blocked_conversion = [
+            category for category in conversion_categories
+            if category not in {"projects"} and not allowed(category)
+        ]
+        if blocked_conversion:
+            for category in blocked_conversion:
+                record(category, conversion_text, "replaced_conversion_strategy", False)
+            out["conversion_strategy"] = self._build_brand_conversion_strategy()
+
+        out["local_strategy"] = self._build_brand_local_strategy(primary_keyword, area)
+        provenance.append({
+            "signal": area or "target area",
+            "category": "target_area",
+            "source": "user_input",
+            "allowed_use": "reader_context",
+            "brand_claim_allowed": False,
+            "action": "forced_reader_context_only",
+        })
+
+        roles = dict(out.get("section_role_map") or {})
+        proof_sources = []
+        if allowed("projects"):
+            proof_sources.append("observed projects or case studies")
+        if allowed("testimonials"):
+            proof_sources.append("explicit testimonials")
+        if allowed("awards"):
+            proof_sources.append("explicit awards")
+        if allowed("certifications"):
+            proof_sources.append("explicit certifications")
+        if allowed("brand_pricing"):
+            proof_sources.append("explicit brand pricing")
+        if proof_sources:
+            roles["proof"] = (
+                "Use only source-backed proof enabled by the brand evidence boundaries: "
+                + ", ".join(proof_sources)
+                + ". Do not infer any other proof category from SERP observations."
+            )
+        else:
+            roles["proof"] = (
+                "Keep proof minimal and factual. SERP observations are market topics, "
+                "not brand proof, and must not establish testimonials, awards, "
+                "certifications, partnerships, pricing, or local presence."
+            )
+        out["section_role_map"] = roles
+        return out, provenance
+
+    def _contains_forbidden_strategy_phrase(self, text: str, allow_heavy_framing: bool = False) -> bool:
+        normalized = self._normalize_token(text)
+        phrases = list(STRATEGY_UNSAFE_PHRASES)
+        if not allow_heavy_framing:
+            phrases += INVESTMENT_HEAVY_PHRASES + LEGAL_HEAVY_PHRASES
+        return any(phrase in normalized for phrase in phrases)
+
+    def _sanitize_brand_strategy_list(self, values: Any, allow_heavy_framing: bool = False) -> List[str]:
+        if not isinstance(values, list):
+            return []
+
+        sanitized = []
+        for value in values:
+            text = str(value or "").strip()
+            if not text:
+                continue
+            if self._contains_forbidden_strategy_phrase(text, allow_heavy_framing=allow_heavy_framing):
+                continue
+            sanitized.append(text)
+        return sanitized
+
+    def _sanitize_brand_scalar(
+        self,
+        value: Any,
+        fallback: str = "",
+        allow_heavy_framing: bool = False,
+    ) -> str:
+        text = str(value or "").strip()
+        if not text:
+            return fallback
+        if self._contains_forbidden_strategy_phrase(text, allow_heavy_framing=allow_heavy_framing):
+            return fallback
+        return text
+
+    def _brand_commercial_defaults(self, primary_keyword: str, area: str) -> Dict[str, Any]:
+        return {
+            "primary_angle": self._build_brand_primary_angle(primary_keyword, area),
+            "market_angle": self._build_brand_market_angle(primary_keyword, area),
+            "target_reader_state": LOCKED_BRAND_TARGET_READER_STATE,
+            "pain_point_focus": [],
+            "emotional_trigger": self._build_brand_emotional_trigger(),
+            "depth_level": "comprehensive",
+            "supported_eeat_signals": [],
+            "supported_differentiators": [],
+            "supported_proof_points": [],
+            "conversion_strategy": self._build_brand_conversion_strategy(),
+            "cta_philosophy": LOCKED_BRAND_CTA_PHILOSOPHY,
+            "local_strategy": self._build_brand_local_strategy(primary_keyword, area),
+            "cultural_peer_areas": [],
+            "tone_direction": LOCKED_BRAND_TONE_DIRECTION,
+            "section_role_map": dict(LOCKED_BRAND_SECTION_ROLE_MAP),
+        }
+
+    def _apply_brand_commercial_contract(
+        self,
+        strategy: Dict[str, Any],
+        primary_keyword: str,
+        area: str,
+        seo_intelligence: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        contracted = dict(strategy)
+        defaults = self._brand_commercial_defaults(primary_keyword, area)
+        allow_heavy_framing = self._keyword_supports_heavy_framing(primary_keyword, seo_intelligence)
+
+        contracted["target_reader_state"] = defaults["target_reader_state"]
+        contracted["tone_direction"] = defaults["tone_direction"]
+        contracted["cta_philosophy"] = defaults["cta_philosophy"]
+        contracted["section_role_map"] = dict(defaults["section_role_map"])
+        contracted["depth_level"] = defaults["depth_level"]
+        contracted["cultural_peer_areas"] = []
+        contracted["market_angle"] = defaults["market_angle"]
+        contracted["local_strategy"] = self._sanitize_brand_scalar(
+            contracted.get("local_strategy"),
+            fallback=defaults["local_strategy"],
+            allow_heavy_framing=allow_heavy_framing,
+        )
+        contracted["emotional_trigger"] = self._sanitize_brand_scalar(
+            contracted.get("emotional_trigger"),
+            fallback=defaults["emotional_trigger"],
+            allow_heavy_framing=allow_heavy_framing,
+        )
+
+        candidate_primary_angle = contracted.get("primary_angle", "")
+        entity = self._derive_entity_terms(primary_keyword, area).get("phrase") or self._derive_head_entity(primary_keyword, area)
+        area_present = not area or area in str(candidate_primary_angle)
+        entity_present = not entity or entity in str(candidate_primary_angle)
+        decision_present = any(
+            token in self._normalize_token(candidate_primary_angle)
+            for token in ("decide", "compare", "choose", "buy")
+        )
+        if (
+            not candidate_primary_angle
+            or not area_present
+            or not entity_present
+            or not decision_present
+            or self._contains_forbidden_strategy_phrase(candidate_primary_angle, allow_heavy_framing=allow_heavy_framing)
+        ):
+            contracted["primary_angle"] = defaults["primary_angle"]
+        else:
+            contracted["primary_angle"] = str(candidate_primary_angle).strip()
+
+        candidate_conversion = contracted.get("conversion_strategy", "")
+        required_markers = ("offer", "features", "proof", "compare", "buying", "objection", "cta")
+        conversion_normalized = self._normalize_token(candidate_conversion)
+        if (
+            not candidate_conversion
+            or self._contains_forbidden_strategy_phrase(candidate_conversion, allow_heavy_framing=allow_heavy_framing)
+            or not all(marker in conversion_normalized for marker in required_markers)
+        ):
+            contracted["conversion_strategy"] = defaults["conversion_strategy"]
+        else:
+            contracted["conversion_strategy"] = str(candidate_conversion).strip()
+
+        contracted["pain_point_focus"] = self._sanitize_brand_strategy_list(
+            contracted.get("pain_point_focus"), allow_heavy_framing=allow_heavy_framing
+        )
+        contracted["supported_eeat_signals"] = self._sanitize_brand_strategy_list(
+            contracted.get("supported_eeat_signals"),
+            allow_heavy_framing=allow_heavy_framing,
+        )
+
+        contracted["supported_differentiators"] = self._sanitize_brand_strategy_list(
+            contracted.get("supported_differentiators"),
+            allow_heavy_framing=allow_heavy_framing,
+        )
+
+        contracted["supported_proof_points"] = self._sanitize_brand_strategy_list(
+            contracted.get("supported_proof_points"),
+            allow_heavy_framing=allow_heavy_framing,
+        )
+
+        return contracted
+
+    def _normalize_content_strategy(
+        self,
+        data: Dict[str, Any],
+        primary_keyword: str,
+        content_type: str,
+        area: str,
+        seo_intelligence: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        defaults = {
+            "primary_angle": f"{primary_keyword} with performance-first execution",
+            "market_angle": "Practical, conversion-focused, locally adapted",
+            "target_reader_state": "Comparing providers and ready to shortlist",
+            "pain_point_focus": [],
+            "emotional_trigger": "Fear of losing leads due to weak digital presence",
+            "depth_level": "comprehensive",
+            "supported_eeat_signals": [],
+            "supported_differentiators": [],
+            "supported_proof_points": [],
+            "conversion_strategy": "Intro CTA bridge -> proof -> close CTA",
+            "cta_philosophy": "One clear CTA early, one decisive CTA in conclusion",
+            "local_strategy": f"Keep local references centered on {area} and only mention local context when it helps the reader make a decision." if area else "No local constraint needed.",
+            "cultural_peer_areas": [],
+            "tone_direction": "Confident, direct, benefit-led",
+            "section_role_map": {
+                "introduction": "Hook with local market urgency + primary CTA",
+                "core_or_benefits": "Show service value and business outcomes",
+                "proof": "Use metrics, case-style evidence, trust signals",
+                "process_or_how": "Clear implementation path and delivery model",
+                "faq": "Handle objections and clarify buying concerns",
+                "conclusion": "Reinforce value + final strong CTA"
+            }
+        }
+        if content_type == "brand_commercial":
+            defaults = self._brand_commercial_defaults(primary_keyword, area)
+
+        out = defaults.copy()
+        if isinstance(data, dict):
+            out.update(data)
+
+        # Validate string quality — reject placeholder/nonsense values
+        for str_key in [
+            "primary_angle", "market_angle", "emotional_trigger",
+            "conversion_strategy", "cta_philosophy", "local_strategy", "tone_direction"
+        ]:
+            val = out.get(str_key)
+            if isinstance(val, str):
+                stripped = val.strip()
+                if len(stripped) < 10 or self._contains_forbidden_strategy_phrase(stripped):
+                    out[str_key] = defaults.get(str_key, "")
+            elif val is not None:
+                out[str_key] = defaults.get(str_key, "")
+
+        for list_key in ["pain_point_focus", "supported_eeat_signals", "supported_differentiators", "supported_proof_points"]:
+            if not isinstance(out.get(list_key), list):
+                out[list_key] = []
+
+        if not isinstance(out.get("section_role_map"), dict):
+            out["section_role_map"] = defaults["section_role_map"]
+        else:
+            out["section_role_map"] = {**defaults["section_role_map"], **out["section_role_map"]}
+
+        if content_type == "brand_commercial":
+            out = self._apply_brand_commercial_contract(
+                out,
+                primary_keyword,
+                area,
+                seo_intelligence=seo_intelligence,
+            )
+
+        return out
+
+    def _is_valid_content_strategy(self, data: Dict[str, Any]) -> bool:
+        required = [
+            "primary_angle", "market_angle", "target_reader_state",
+            "pain_point_focus", "emotional_trigger", "depth_level",
+            "outline_format", "explicit_structure_instruction",
+            "supported_eeat_signals", "supported_differentiators", "supported_proof_points",
+            "conversion_strategy", "cta_philosophy", "local_strategy", "cultural_peer_areas",
+            "tone_direction", "section_role_map"
+        ]
+        if not isinstance(data, dict) or not data:
+            return False
+        if not all(k in data for k in required):
+            return False
+        for str_key in [
+            "primary_angle", "market_angle", "target_reader_state",
+            "emotional_trigger", "depth_level", "conversion_strategy",
+            "cta_philosophy", "local_strategy", "tone_direction"
+        ]:
+            val = data.get(str_key)
+            if not isinstance(val, str) or len(val.strip()) < 10:
+                return False
+        for list_key in ["pain_point_focus", "supported_eeat_signals", "supported_differentiators", "supported_proof_points"]:
+            if not isinstance(data.get(list_key), list):
+                return False
+        role_map = data.get("section_role_map")
+        if not isinstance(role_map, dict) or len(role_map) < 3:
+            return False
+        return True
+
+    def _extract_first_json_object(self, text: str) -> str:
+        if not text:
+            return ""
+        cleaned = re.sub(r"```json|```", "", text, flags=re.IGNORECASE).strip()
+        start = cleaned.find("{")
+        end = cleaned.rfind("}")
+        if start == -1 or end == -1 or end <= start:
+            return cleaned
+        return cleaned[start:end+1]

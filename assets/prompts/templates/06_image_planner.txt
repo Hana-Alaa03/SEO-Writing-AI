@@ -1,0 +1,68 @@
+Do NOT write article content.
+Do NOT modify headings.
+
+Context:
+- Article Title: "{{ title | default('Untitled Article') }}"
+- Primary Keyword: "{{ primary_keyword | default('Main Topic') }}"
+- Core Keywords: {{ (keywords | default([])) | tojson }}
+- Article Outline: {{ (outline | default([])) | tojson }}
+- Brand Visual Style: {{ (brand_visual_style | default('Generic Professional')) }}
+- Target Image Quantity: {{ (num_images | default(0)) }}
+- Preferred Image Style: {{ (image_style | default('Premium')) }}
+- Target Aspect Ratio / Size: {{ (image_size | default('1024x1024')) }}
+
+
+Your Task:
+Act as a Visual Clarity & Perspective Advisor. Your goal is to plan the visual assets for this article for a zero-knowledge reader.
+You must generate a list of **{{ (num_images | default(0)) }} high-quality image prompts** that will be used to generate images for this article.
+
+
+Rules:
+1. **Quantity**: You MUST generate exactly **{{ (num_images | default(0)) }} image prompts**. If there are fewer than {{ (num_images | default(0)) }} sections, assign multiple images to the most important sections (Introduction, Core services).
+
+2. **Exclusivity (STRICT - NO STOCK IMAGES)**: 
+   - Prohibited: Generic "smiling people in office", "shaking hands", "random code on screen", "generic laptop on desk".
+   - Required: Custom-designed, premium visuals. Describe specific, brand-relevant scenarios.
+   - Style: **{{ (image_style | default('premium')) | capitalize }}** - focus on modern architecture, clean tech-surfaces, isometric 3D abstractions, and professional MENA-region/Riyadh localized contexts.
+
+3. **Brand Grounding**: Each prompt MUST incorporate elements from the Brand Source Text or its specific services (e.g., "A modern UI prototype for a Riyadh-based business scenario", "An isometric 3D visualization of the core technical architecture mentioned in the brand text").
+4. **Relevance**: Each image must correspond directly to the technical or business value of the section it is assigned to.
+5. **Variety**: Rotate through: 
+   - Hero/Featured (High-impact, expressive, artistically cinematic, grand scale)
+   - Process Infographic (Technical, structured)
+   - Abstract Illustration (Minimalist, conceptual)
+   - High-End Mockup (Real-world application)
+6. **Alt Text Strategy (STRICT SEO RULES)**:
+   - **FEATURED IMAGE (HERO)**: The Alt text MUST include the **Primary Keyword** ({{ primary_keyword | default('Main Topic') }}) naturally. This is the ONLY image allowed to have the primary keyword in its Alt text.
+   - **ALL OTHER IMAGES**: The Alt text MUST use a relevant **LSI or Secondary Keyword** from the provided list ({{ (keywords | default([])) | tojson }}). The primary keyword does NOT have to be in every ALT text.
+   - **NATURAL PHRASING**: Write Alt texts as natural, descriptive phrases (e.g., "A modern office layout in Riyadh showing digital collaboration tools" instead of just "office Riyadh").
+   - **UNIQUE & NON-REPETITIVE**: Never repeat the exact same Alt text across different images. Each description must be unique and specific to the image content. Google treats repetitive ALTs as low-quality automated content.
+7. **Image Types**: Use strictly: Featured, Infographic, Illustration, Mockup.
+8. **Prompt Engineering for Clean Visuals (CRITICAL)**: 
+   - Image generators produce "messy" or garbled results when given overly complex or crowded prompts. 
+   - KEEP IT CLEAN: Focus on a single, clear, high-quality subject. Use words like "minimalist," "clean composition," "uncluttered," and "professional."
+   - **FRAMING SAFETY (CRITICAL)**: Describe subjects as being "centered with wide margins" or "surrounded by significant negative space". This ensures that no part of the subject is cut off when fitted into different templates.
+   - **HIGH-CLARITY & SHARP FOCUS**: Use keywords like "ray tracing", "8k resolution", "sharp focus", "professional studio lighting".
+   - DO NOT ask for collages, crowded scenes, or multiple overlapping elements.
+9. **Language & Text Strategy (Arabic Allowed but Use with Caution)**: 
+   - You MAY include Arabic text in image prompts if it significantly enhances the context (e.g., brand name, key headline, or localized signs).
+   - **QUALITY WARNING**: Be aware that many AI image models still struggle with complex Arabic script and may produce garbled or reversed letters. 
+   - **STRICT GUIDELINES FOR TEXT**:
+     - Keep Arabic text extremely short (1-3 words max).
+     - Request "Simple, bold, modern Arabic typography" or "Clean Kufic calligraphy" for better results.
+     - Expressly forbid "complex calligraphy" or "long sentences" as they are most likely to fail.
+     - If the text looks distorted in previous attempts or the context is abstract, fallback to visual metaphors without text.
+   - **NO GARBLED TEXT**: Always include "no garbled or distorted text" in the negative prompt portion of your instructions.
+10. **Aesthetic Consistency**: All images must follow a 'Clean Modern Helpful' style - use premium materials (brushed metal, frosted glass, smooth concrete) and soft, professional color palettes derived from the brand style.
+
+Output Format:
+Return strictly a JSON array of objects. No markdown.
+[
+  {
+    "section_id": "sec_01", 
+    "image_type": "Featured" or "Infographic" or "Illustration",
+    "prompt": "A detailed description of the image for an AI generator (Midjourney/DALL-E style)...",
+    "alt_text": "SEO optimized alt text..."
+  },
+  ...
+]

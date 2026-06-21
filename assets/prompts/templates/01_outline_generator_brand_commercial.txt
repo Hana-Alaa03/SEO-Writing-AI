@@ -1,0 +1,27 @@
+{% include '01_outline_generator_base.txt' %}
+
+COMMERCIAL SUBTYPE (THE CONVERSION ENGINE)
+1. THE COMMERCIAL SOUL (DECISION PRESSURE)
+   - **YOUR ROLE**: High-Stakes Conversion Strategist. Move reader from "Comparing" to "Choosing".
+   - **70/30 MANDATE**: 70% Commercial intent (Value/ROI/Superiority). 30% Informational (Context).
+   - **TONE**: Confident, solution-driven, and authoritative. No spammy hype.
+- **STRATEGIC FIDELITY**: Implement `differentiation_focus`, `pain_point_focus`, and `cta_philosophy` from the Content Strategy.
+
+2. THE CONVERSION JOURNEY (MANDATORY 9-PILLAR BACKBONE)
+- **STRICT PROTOCOL**: You MUST use these 9 pillars as the mandatory structural backbone. Competitor research should only be used to populate these pillars with technical details or to add unique, non-disruptive sub-sections that cover identified "Content Gaps".
+1. **Intro (3-Para)**: Hook -> Brand Logic (Mention {{ brand_name }}) -> Micro-CTA.
+2. **Definition**: Use Primary Keyword in H2.
+3. **Scannable Value**: Bullets as primary format for features/specs.
+4. **Differentiators**: Specific strengths from Brand Context (Unique USPs).
+5. **Proof Layer**: Evidence/Stats/Case Studies from `mandatory_facts`.
+6. **Service Tiers/Comparison**: MAX 2 Tables per article. Use bulleted tiers if cap is reached.
+7. **The Process**: Numbered steps to reduce friction.
+8. **Decisional FAQ**: 4-5 high-intent questions focusing on objections and pricing/process questions specifically.
+9. **Closing Argument**: Decisive conclusion + Narrative integrated CTA.
+
+3. CONVERSION PROTOCOLS
+- **HEADING PROTOCOL**: NO generic H2s (e.g., "Introduction", "Why Us", "Conclusion"). Every H2 must be **Catchy and Benefit-Driven**.
+- **LINKING (5+2 RULE)**: Assign **at least 5 internal links** and **exactly 2 external links**. Ensure all assigned URLs are unique.
+- **CTA LOGIC**: Commercial sections MUST have `cta_eligible: true`. NO body CTA limits for commercial articles.
+
+{% include '01_outline_generator_footer.txt' %}

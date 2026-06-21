@@ -1,0 +1,37 @@
+Context:
+You have received a set of written sections for the article titled: "{{ title | default('Untitled Article') }}".
+Your job is to assemble them into a single, cohesive, finalized Masterpiece.
+
+Input Sections:
+{% for section in (sections | default([])) %}
+--- SECTION: {{ section.heading_text | default('New Section') }} ---
+{{ section.generated_content | default('No content.') }}
+{% endfor %}
+
+Your Task:
+1. **Assembly**: Stitch these sections together into a cohesive article..
+2. **Analysis**:
+   - Check for smooth transitions between paragraphs/sections. If a transition is abrupt, add a linking sentence.
+   - Remove any redundant introductions (e.g., "In this section...").
+   - Ensure the tone is consistent throughout.
+3. **Establish Hierarchy**: Ensure the H1 (Title) is at the top, followed by H2 main, H3 sub-sections.
+4. **Metadata Generation**: Create the Meta Title and Meta Description according to guidelines.
+5. Assembly Rules:
+  - Do NOT rewrite or expand content.
+  - Stitch sections in correct order.
+  - Add minimal transitions only when necessary.
+  - Transition edits must not exceed 5% of the text.
+  - Do NOT attempt to fix or bypass validation constraints (word count, keyword density, image count). Only assemble.
+  - Insert image placeholders in the format: ![Alt Text containing Keyword](Image_Type_Description) immediately after the section they belong to, using the section.image_plan.
+6. Schema Generation:
+   - Generate valid JSON-LD "FAQPage" Schema based on the FAQ section.
+   - Generate valid JSON-LD "Article" Schema.
+   - Append these schemas inside <script type="application/ld+json"> tags at the end of the final_markdown.
+
+Output Format:
+Return a JSON object with the final content and metadata:
+{
+  "final_markdown": "The complete, formatted markdown article...",
+  "meta_title": "SEO Optimized Title (60-70 chars)",
+  "meta_description": "Click-worthy description (150-160 chars)"
+}

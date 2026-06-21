@@ -1,0 +1,235 @@
+You are building a content strategy based on provided inputs.
+
+Inputs:
+- Primary Keyword: {{ primary_keyword | default('Main Topic') }}
+- Intent: {{ intent | default('informational') }}
+- Content Type: {{ content_type | default('article') }}
+- Target Area: {{ area | default('General') }}
+- SERP Intent Analysis: {{ serp_intent_analysis | default('{}') }}
+- SERP Structural Intelligence: {{ serp_structural_intelligence | default('{}') }}
+- SERP Market Insights: {{ serp_market_insights | default('{}') }}
+- Brand Evidence Boundaries: {{ brand_evidence_boundaries | default('{}') }}
+- Brand Knowledge Pack (concrete page-by-page evidence): {{ brand_knowledge_pack_context | default('') }}
+- Brand Ground Truth Report (consolidated brand facts): {{ brand_ground_truth_md | default('') }}
+- SERP Market Insights (competitor/market observations): {{ serp_market_insights | default('{}') }}
+
+INSTRUCTION — MERGE SERP OBSERVATIONS WITH BRAND EVIDENCE:
+The Brand Knowledge Pack and SERP Market Insights describe the same market from different angles. Cross-reference them:
+- Where SERP shows a market demand topic (e.g., "mobile app development"), check if the Brand Knowledge Pack confirms the brand delivers that service. If yes, use it in `supported_differentiators` or `supported_proof_points`.
+- Where SERP shows pricing FAQ patterns, set `brand_pricing` in section_role_map only if brand_pricing is enabled in Brand Evidence Boundaries.
+- Do NOT suggest brand capabilities that have SERP demand but no brand evidence.
+- Do NOT generate strategy fields from SERP-only signals that contradict brand evidence boundaries.
+
+CRITICAL RULE:
+You must NOT introduce any concept that is not strongly supported by:
+- the primary keyword
+OR
+- high-confidence SERP observations
+
+SOURCE BOUNDARY:
+- SERP observations describe market topics and competitor patterns only.
+- SERP observations MUST NOT establish a fact, proof point, capability, or trust signal about the brand.
+- Only categories enabled in `Brand Evidence Boundaries` may appear in `supported_eeat_signals`, `supported_differentiators`, or `supported_proof_points` as brand facts.
+- The target area describes the reader context. It does not prove brand local presence, local expertise, a local office, or local support.
+- CRITICAL SEPARATION: The `area` field is the READER's geographic context ONLY. It does NOT mean the brand operates there. Example: if primary_keyword="أفضل شركة تصميم مواقع" and area="السعودية", this means the reader is in Saudi Arabia looking for options. It does NOT mean the brand has a Saudi office or Saudi clients. `brand_evidence_boundaries.local_presence` is the ONLY signal for brand local presence.
+- If `brand_evidence_boundaries.local_presence` is false: Do NOT generate `local_strategy` or any strategy field that implies the brand operates in the target area. All geographic references must be purely about the reader's decision context.
+- If `brand_evidence_boundaries.local_presence` is true: You may reference the brand's local presence sparingly and only in differentiation or proof sections.
+- If `testimonials`, `awards`, `certifications`, `partnerships`, `brand_pricing`, or `local_presence` is false, do not present that category as supported brand evidence.
+
+IMPORTANT:
+- You are building a minimal, realistic strategy.
+- You are not writing an idealized or over-optimized plan.
+- Commercial intent does NOT mean generic service-page logic.
+- Keep the main entity in the primary keyword as the center of the strategy.
+- Assume the reader is a buyer with little or no prior market knowledge.
+- Use simple, practical, buyer-facing language.
+- Keep the strategy helpful for a real buyer decision, not a business-growth or provider-selection pitch.
+
+STRICT RULES:
+1. Do NOT enforce:
+   - investment framing
+   - legal framing
+   - ROI or financial analysis
+   unless explicitly required by the keyword or strongly supported by repeated high-confidence SERP signals.
+
+2. Do NOT generalize the entity.
+   Example:
+   - apartments must remain apartments
+   - do NOT broaden them into the real estate market
+   - all strategic fields must preserve the main entity of the primary keyword as the core subject
+   - do NOT drift into broader categories such as real estate, projects, developments, or market unless still clearly centered on the original entity
+
+3. Strategy must be:
+   - intent-aligned
+   - entity-focused
+   - minimal, not inflated
+   - beginner-friendly
+   - decision-oriented
+
+4. Do NOT convert weak signals into core sections.
+   - Treat `core_recurring_topics` as the strongest support.
+   - Treat `secondary_mentions` as optional support only when they still serve the main entity and intent.
+   - Treat `weak_signals` as non-core. They must not drive the structure.
+
+5. Brand presence:
+   - allowed only in differentiation and conclusion
+   - must not influence structural decisions
+   - must not redefine the article as a brand-first page
+
+6. Avoid:
+   - over-architected structures
+   - unnecessary sections
+   - forced authority signals
+   - generic market commentary
+
+7. Use only the strongest observed signals.
+   - If SERP observations are thin or mixed, keep the strategy conservative.
+   - Leave unsupported fields minimal or empty rather than inflating them.
+
+8. The strategy must support a real user journey:
+   - understand the offering
+   - evaluate relevant features
+   - review concrete proof
+   - compare realistic options
+   - understand the practical buying path
+   - resolve objections
+   - take the next step
+
+9. Keep section roles clean (coverage targets for writers — NOT a fixed H2 list or order):
+   - introduction: hook the reader with a short story-like problem narrative, include the primary keyword naturally, present the brand as a simple solution in paragraph 2, and end with one soft CTA in paragraph 3.
+   - offer_clarity: explain what the service/product actually is. Do not turn this into benefits or provider-selection criteria.
+   - features: explain included features, deliverables, capabilities, or buyer-facing benefits. Do not repeat offer_clarity.
+   - differentiation: explain only supported brand advantages. Do not use generic claims such as “best”, “leading”, “trusted”, or “top” unless explicitly supported.
+   - proof: include only supported proof points such as observed projects, case studies, testimonials, certifications, pricing examples, or results. If unsupported, keep it minimal and factual.
+   - comparison: compare realistic buyer options, approaches, service tiers, or scenarios. Do not compare against named competitors.
+   - process: explain the practical customer journey from inquiry to delivery.
+   - faq: answer realistic buyer objections about scope, process, pricing/value, timing, and decision concerns.
+   - conclusion_cta: summarize the decision value and close with one clear next step.
+
+10. Do NOT force these into the strategy unless strongly supported:
+   - investment return
+   - legal verification
+   - financing complexity
+   - infrastructure impact
+   - broad authority narratives
+
+11. `primary_angle` must describe:
+   - what the reader is trying to decide
+   - using the main entity + location
+   - in buyer-facing language
+   - without business, provider, performance, legal, or investment outcomes
+
+12. `market_angle` must be compact and practical.
+   - It should describe the decision lens for comparing the main entity in the target area.
+   - Do NOT turn it into broad market commentary.
+
+13. `conversion_strategy` must stay within this bounded journey:
+   - clarify the offer
+   - show buyer-facing features
+   - provide practical proof
+   - help compare real options
+   - reduce friction in the buying path
+   - answer objections
+   - close with a confident final CTA
+   - Do NOT use funnel language, urgency pressure, or agency/service sales logic.
+
+14. ISOLATE COMPETITOR PATTERNS (PRICING, FAQ, PROOF):
+   - SERP market insights describe what competitors do. They do NOT define what this article should do.
+   - Do NOT let competitor pricing models, competitor FAQ questions, or competitor proof structures drive the `section_role_map` for `proof`, `faq`, or `comparison`.
+   - For the `faq` role: base questions only on generic buyer objections about the entity type (scope, timing, decision process), NOT on competitor-specific pricing models, competitor package names, or competitor financing offers.
+   - For the `proof` role: if market pricing data comes from competitors, label it as market context, not as brand proof. Do not structure pricing sections around competitor pricing tiers.
+   - For the `comparison` role: compare realistic buyer scenarios or options inherent to the entity (e.g., renting vs. buying, basic vs. premium tiers), not competitor-offered packages.
+   - FAQ questions and pricing structure must be derivable from: (a) the primary keyword and entity type alone (generic buyer logic), OR (b) brand evidence boundaries (when brand_pricing is enabled).
+   - If brand_pricing is false, the pricing/proof section role must stay at the market-generic level and must NOT adopt competitor pricing structures.
+
+COMMERCIAL COVERAGE RULES (ROLES, NOT HEADING TEMPLATES):
+   For commercial/service/product content, the article must COVER these buyer-journey roles somewhere in the journey.
+   These are coverage targets for the writer and outliner — NOT fixed H2 titles, NOT a mandatory section order, and NOT labels to paste into headings.
+
+   Roles to cover (when evidence allows):
+   - introduction: reader problem story + primary keyword; brand solution in paragraph 2; soft CTA in paragraph 3 only.
+   - offer_clarity: what the service/product actually is.
+   - features: deliverables, capabilities, or buyer-facing benefits (not a repeat of offer_clarity).
+   - differentiation: supported brand advantages only — no generic “best/top/trusted”.
+   - proof: observed projects, case studies, pricing examples, trust signals ONLY if supported.
+   - comparison: realistic buyer options, tiers, or scenarios — never named competitors.
+   - process: practical path from inquiry to delivery.
+   - faq: realistic objections (scope, process, value, timing).
+   - conclusion_cta: clear next step.
+
+   Coverage flexibility:
+   - More than one role MAY be emphasized inside the same narrative angle when natural (e.g., offer + features, or differentiation + proof).
+   - The outliner may choose order, merge angles, or add domain-specific H2s when SERP/topic requires it.
+   - Do NOT prescribe identical heading patterns across topics (avoid reusable scripts like “ما الذي تقدمه فعليًا؟” every time).
+
+   A role may stay shallow only if evidence is genuinely insufficient — do not delete the role entirely when it can be fulfilled factually at lower depth.
+
+EXPLICIT_STRUCTURE_INSTRUCTION RULES (CRITICAL):
+   - This field tells the outliner WHAT to cover and emphasize — NOT which H2 headings to use or in what order.
+   - Write 1–3 sentences about coverage priorities, evidence emphasis, and topic-specific angles.
+   - You MAY mention that roles can merge (e.g., “keep offer and included deliverables in one practical angle if clearer”).
+   - FORBIDDEN: numbered section lists (“قسم 1 الخدمات، قسم 2 المميزات…”).
+   - FORBIDDEN: copying internal role keys as visible headings (offer_clarity, features, proof, process_or_how, conclusion_cta).
+   - FORBIDDEN: repeating the same funnel script across articles.
+   - Good example: “ركّز على خدمات البراند المرصودة وقدرات UX/UI الفعلية؛ أبقِ الإثبات على مشاريع موثقة؛ قارن خيارات التنفيذ لا المنافسين بالاسم.”
+   - Bad example: “استخدم عناوين لـ: توضيح الخدمة، المميزات، التميز، أمثلة، مقارنة، خطوات، FAQ، خاتمة.”
+
+Evidence hierarchy:
+   1. Brand Evidence Boundaries for brand facts and proof
+   2. Core recurring topics for market coverage
+   3. High-confidence SERP observations for market guidance
+   4. Secondary mentions for optional market context
+Weak signals must never create:
+- proof sections
+- differentiation sections
+- comparison sections
+
+Do NOT populate a section role unless supported by SERP evidence OR brand evidence.
+If no strong evidence exists:
+- leave the role empty
+- do not invent content
+
+CTA limitations:
+   - Keep CTAs persuasive but not pushy.
+   - One soft CTA is acceptable in the introduction for commercial content.
+   - The final CTA should be stronger and direct.
+   - Do not use urgency pressure, scarcity, exaggerated promises, or unsupported guarantees.
+
+OUTPUT FORMAT:
+You MUST return the output EXACTLY as a valid JSON object.
+Do NOT include any explanations, markdown formatting, or introductory text.
+Return ONLY this JSON structure:
+{
+  "primary_angle": "",
+  "market_angle": "",
+  "target_reader_state": "",
+  "pain_point_focus": [],
+  "emotional_trigger": "",
+  "depth_level": "intermediate | advanced | comprehensive",
+  "outline_format": "guide | listicle | comparison | step_by_step | problem_solution | beginner_guide | how_to | vs_comparison | standard",
+  "explicit_structure_instruction": "Coverage-priority note for the outliner only (angles to emphasize; may suggest merge). Never a fixed H2 list or section order.",
+  "supported_eeat_signals": [],
+  "supported_differentiators": [],
+  "supported_proof_points": [],
+  "conversion_strategy": "",
+  "cta_philosophy": "",
+  "local_strategy": "",
+  "tone_direction": "",
+  "section_role_map": {
+      "introduction": "",
+      "offer_clarity": "",
+      "features": "",
+      "differentiation": "",
+      "proof": "",
+      "comparison": "",
+      "process": "",
+      "faq": "",
+      "conclusion_cta": ""
+  }
+}
+
+OUTPUT SAFETY:
+- If a concept is unsupported, leave it out.
+- If a list is weakly supported, return an empty list.
+- Do not name competitors.
+- Do not expand one-off signals into the strategy.

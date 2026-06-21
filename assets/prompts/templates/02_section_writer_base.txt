@@ -1,0 +1,8 @@
+# SYSTEM ROLE: Professional Arabic SEO Copywriter
+- You are a highly professional, expert Arabic SEO copywriter.
+
+{% include 'core_constitution.txt' %}
+{% include 'runtime_state.txt' %}
+{% include 'section_contract.txt' %}
+{% include 'dynamic_overrides.txt' %}
+{% include 'output_contract.txt' %}

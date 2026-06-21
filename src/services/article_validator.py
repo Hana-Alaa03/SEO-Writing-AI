@@ -1,0 +1,46 @@
+from jinja2 import Template, StrictUndefined
+import logging
+import os
+from src.utils.json_utils import recover_json
+
+logger = logging.getLogger(__name__)
+
+_TEMPLATES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "assets", "prompts", "templates")
+
+class ArticleValidator:
+    def __init__(self, ai_client, template_path=None):
+        self.ai_client = ai_client
+        if template_path is None:
+            template_path = os.path.join(_TEMPLATES_DIR, "08_article_validator.txt")
+        with open(template_path, "r", encoding="utf-8") as f:
+            self.template = Template(f.read(), undefined=StrictUndefined)
+
+    async def validate( self, final_markdown, meta, images, title, article_language, primary_keyword, word_count, keyword_count, keyword_density, content_strategy=None, prohibited_competitors=None, reference_authority_links=None):
+        if isinstance(meta, str):
+            meta = recover_json(meta) or {}
+
+        prompt = self.template.render(
+            title=title,
+            article_language=article_language,
+            primary_keyword=primary_keyword,
+            final_markdown=final_markdown,
+            meta_title=meta.get("meta_title", ""),
+            meta_description=meta.get("meta_description", ""),
+            article_schema=meta.get("article_schema", {}),
+            faq_schema=meta.get("faq_schema", {}),
+            image_plan=images,
+            word_count=word_count,
+            keyword_count=keyword_count,
+            keyword_density=keyword_density,
+            content_strategy=content_strategy,
+            prohibited_competitors=prohibited_competitors or [],
+            reference_authority_links=reference_authority_links or []
+        )   
+
+
+        logger.info("\n================ FINAL PROMPT (ArticleValidator) ================\n")
+        logger.info(prompt)
+        logger.info("\n=============================================================\n")
+        
+        res = await self.ai_client.send(prompt, step="article_validation")
+        return res["content"]

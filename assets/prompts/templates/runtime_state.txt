@@ -1,0 +1,78 @@
+# THE RUNTIME STATE 
+
+## 1. LIVE COUNTS & METADATA 
+- **Current Section Index**: {{ section_index | default(0) }} of {{ total_sections | default(1) }}
+- **Section Type / Intent**: Type: "{{ (section | default({})).get('section_type', 'core') }}" | Intent: "{{ (section | default({})).get('section_intent', 'Informational') }}"
+- **Section Importance**: {{ (section | default({})).get('section_importance', 0.5) }} (0.0=supporting, 0.5=standard, 1.0=critical — allocate depth proportionally)
+- **Commercial Section Role**: "{{ (section | default({})).get('commercial_section_role', 'informational') }}"
+- **Brand Usage Policy For This Section**: "{{ (section | default({})).get('brand_usage_policy', 'neutral_market') }}"
+- **Section Intent Snapshot**: {{ ((section | default({})).get('section_intent_snapshot', {})) | tojson }}
+- **Buyer Stage**: "{{ ((section | default({})).get('section_intent_snapshot', {})).get('buyer_stage', 'awareness') }}"
+- **Primary Keyword**: "{{ primary_keyword }}"
+- **Brand Identity**: Brand Name: "{{ brand_name }}" | Brand URL: "{{ brand_url }}" | Context: "{{ brand_context | default('') }}"
+- **Mandatory Section Facts**: {{ ((section | default({})).get('mandatory_facts', [])) | tojson }}
+- **External Validation Sources**: {{ (external_sources | default([])) | tojson }}
+- **CTA Eligibility**: {{ (section | default({})).get('cta_eligible', false) | lower }} | Type: {{ cta_type | default('none') }} | Total CTAs placed so far: {{ ctas_placed | default(0) }}
+
+## 1b. BRAND FACTUAL SOURCE
+{% if brand_page_knowledge_pack_context %}
+{{ brand_page_knowledge_pack_context }}
+{% else %}
+[BRAND PAGE KNOWLEDGE PACK - PAGE BY PAGE]
+No full page-by-page brand knowledge pack is available for this run.
+{% endif %}
+
+Rules for writer:
+- The brand page knowledge pack above is the ONLY writer-facing truth for brand facts.
+- The pack is available as background context, not as an instruction to mention the brand in every section.
+- Commercial roles decide the job of the section:
+  - `informational`: teach the reader without brand promotion.
+  - `service_explanation`: explain the service/product clearly before any brand tie-in.
+  - `features_included`: show what is included or what the buyer gets; do not turn it into another service catalog.
+  - `brand_differentiator`: explain observed brand-specific value only.
+  - `proof`: use projects, case studies, examples, or proof details; avoid repeating the same project elsewhere.
+  - `comparison`: compare real options or decision paths; if the options do not differ, use bullets instead of a fake table.
+  - `process`: use numbered steps.
+  - `faq`: answer objections directly.
+  - `cta`: close with a direct action.
+- Follow `Brand Usage Policy For This Section` strictly:
+  - `neutral_market`: answer the section as buyer education or market guidance. Do not mention the brand, projects, tools, or brand capabilities unless the visible heading explicitly asks about the brand.
+  - `brand_light`: explain the service/product in plain language first. Mention the brand at most once and only to connect a broad observed capability to the reader's need. Do not use project examples unless the heading asks for proof.
+  - `brand_owned`: this section may use observed brand facts from the pack, but every claim must stay page-backed and specific.
+  - `soft_intro_brand`: write exactly 3 paragraphs — (1) story-like problem hook with primary keyword and no brand, (2) brand as simple solution to that problem, (3) one soft CTA with a markdown link. No technical catalogs and no hard-sell urgency.
+  - `brand_cta`: close commercially with one clear CTA using only observed brand capabilities.
+  - `no_brand_facts`: brand name only; no service, proof, process, price, geography, or trust claims.
+- Do not use `section_page_narrative_briefs`, `section_brand_page_briefs`, `section_raw_brand_blocks`, `section_brand_understanding`, `section_source_text`, evidence cards, inventory fields, `observed_projects`, `grounded_summary`, extracted label lists, headings, menus, slogans, or old contracts as facts.
+- If a brand fact is not clearly present in the knowledge pack, do not write it.
+- For project/proof sections, use only projects and page details that appear in the knowledge pack. Do not turn labels such as Screenshots, Technology Stack, B2C, Location, Name, or Scope of Work into projects.
+- Do not repeat the same project across unrelated sections. Use project examples mainly in project/proof sections, and at most one relevant proof example in a differentiation section.
+- In proof sections, do not just list project names. Turn each selected evidence point into a short proof story: what was observed, what service/scope/tool it shows, and why that matters to the reader's decision. Do not invent results.
+- Match the buyer stage: awareness sections clarify the problem, evaluation sections compare criteria/options, validation sections interpret evidence, and decision sections reduce friction and guide the next step.
+- If the pack does not support a target-area project or local-presence claim, do not make the heading/body sound local to that area.
+- Do not invent pricing, packages, guarantees, timelines, certifications, partnerships, project counts, testimonials, market leadership, geography, or local presence.
+- Do not write numeric price ranges, delivery timelines, response times, guarantee periods, or support promises unless an exact observed number appears in the knowledge pack or in a supplied live market snippet for this exact section.
+- General market guidance may use market research only in non-brand sections. Brand-owned pricing, packages, timelines, geography, guarantees, or trust claims require explicit wording in the knowledge pack.
+- Intro must be exactly 3 paragraphs: story-like problem hook (keyword, no brand) → simple brand solution → soft CTA with markdown link. Avoid technical catalog dumps and generic openers like "choosing X is not a simple decision".
+- Write for a non-technical buyer. Use technical terms only when they are useful, observed, and paired with a plain-language benefit. Avoid tool-stack lists outside proof/project or genuinely technical sections.
+
+## 2. SEO KEYWORD COUNTS 
+- **Exact Primary Keyword (PK) Count So Far**: {{ global_keyword_count | default(0) }} / 5
+- **Exact PK Priority**: {{ (section | default({})).get('requires_primary_keyword', false) | lower }}
+- **LSI/NLP Keywords Assigned to this Section**: {{ (section | default({})).get('assigned_keywords', []) | join(', ') }}
+
+## 3. LINK POOLS & USED ANCHORS 
+- **Available Brand Internal Links**: {{ (section | default({})).get('available_link_pool', {}).get('internal', []) | tojson }}
+- **Available Authority Links (External)**: {{ (section | default({})).get('available_link_pool', {}).get('external_references', []) | tojson }}
+- **Used Anchors Map**: {{ (used_anchors | default([])) | tojson }}
+- **External Link Policy**: allow_external_links={{ allow_external_links | default(false) | lower }} | max_external={{ max_external_links | default(6) }} | remaining_budget={{ max_external_links - ((used_external_links | default([])) | length) }}
+
+## 4. PREVIOUS SECTIONS MEMORY 
+- **Previous Sections Summary**: """{{ previous_content_summary }}"""
+
+{% if seo_intelligence and seo_intelligence.get('serp_raw') and seo_intelligence.get('serp_raw').get('top_results') %}
+## 5. LIVE MARKET RESEARCH & SERP DATA
+- **Market Intelligence**: The following facts and snippets were just retrieved from live search results. Use concrete data from these snippets only when this section is neutral-market and explicitly asks for pricing, measurable comparisons, cost/value, or market ranges. Do not force numbers into unrelated sections. Do NOT mention competitor brand names found in the snippets.
+{% for result in seo_intelligence.get('serp_raw').get('top_results')[:5] %}
+  - **Snippet**: "{{ result.get('snippet', '') }}"
+{% endfor %}
+{% endif %}

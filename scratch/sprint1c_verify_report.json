@@ -1,0 +1,23 @@
+{
+  "run": "output\\افضل-شركة-تصميم-مواقع-في-السعودية_20260617_160334",
+  "proof_trace": {
+    "proof_section_id": "sec_05",
+    "required_project_names": [
+      "Billion",
+      "Baddel"
+    ],
+    "required_names_in_proof_section": true,
+    "missing_required_names": []
+  },
+  "strategy_first": [
+    "مشروع Billion في Riyadh (مرصود في portfolio البراند)",
+    "مشروع Baddel في Riyadh (مرصود في portfolio البراند)"
+  ],
+  "ranked_explicit": [
+    "Billion",
+    "Baddel"
+  ],
+  "proof_issues": [],
+  "billion": true,
+  "baddel": true
+}

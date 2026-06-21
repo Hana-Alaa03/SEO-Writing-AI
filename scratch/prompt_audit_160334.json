@@ -1,0 +1,179 @@
+{
+  "sec_01": {
+    "section_type": "introduction",
+    "commercial_section_role": "intro",
+    "brand_usage_policy": "soft_intro_brand",
+    "execution_mode": "onboarding_context",
+    "subheadings": [],
+    "blocks_in_prompt": [
+      "MANDATORY COMMERCIAL INTRO STRUCTURE",
+      "NUMBERED PROCESS MANDATE",
+      "BRAND-OWNED SECTION RULE",
+      "Evidence Density, Not SEO Filler",
+      "neutral_market"
+    ],
+    "must_include_details": [
+      "حوّل العنوان إلى معايير عملية يمكن للقارئ استخدامها.",
+      "اربط كل معيار بنتيجة أو قرار واضح.",
+      "اكتب المعايير في نقاط قابلة للمسح بدل فقرة طويلة عامة."
+    ],
+    "required_project_names": null,
+    "writer_output_preview": "{\n  \"content\": \"عند البحث عن افضل شركة تصميم مواقع في السعودية، تظهر الحاجة إلى معايير دقيقة تضمن لك استثماراً ناجحاً في حضورك الرقمي. اختيار الشركة الخاطئة قد يؤدي إلى موقع يصعب تطويره أو لا يخدم أهدافك التجارية.\\n\\nتقدم Creative Minds حلول تصميم وتطوير مواقع تجمع بين الإبداع والدقة، مع خبرة في تصميم واجهات مستخدم وتجارب سلسة، مما يساعد الشركات على تحقيق نتائج ملموسة في بيئة رقمية تنافسية.\\n\\nللب"
+  },
+  "sec_02": {
+    "section_type": "offer",
+    "commercial_section_role": "service_explanation",
+    "brand_usage_policy": "brand_light",
+    "execution_mode": "taxonomy_breakdown",
+    "subheadings": [
+      "تصميم مواقع إلكترونية",
+      "تطوير تطبيقات الجوال",
+      "خدمات التسويق الرقمي",
+      "حلول الذكاء الاصطناعي والأتمتة"
+    ],
+    "blocks_in_prompt": [
+      "NUMBERED PROCESS MANDATE",
+      "BRAND-OWNED SECTION RULE",
+      "Evidence Density, Not SEO Filler",
+      "neutral_market"
+    ],
+    "must_include_details": [
+      "حوّل العنوان إلى معايير عملية يمكن للقارئ استخدامها.",
+      "اربط كل معيار بنتيجة أو قرار واضح.",
+      "اكتب المعايير في نقاط قابلة للمسح بدل فقرة طويلة عامة."
+    ],
+    "required_project_names": null,
+    "writer_output_preview": "{\n  \"content\": \"عند البحث عن افضل شركة تصميم مواقع في السعودية، ينبغي التركيز على ما تقدمه فعليًا من خدمات رقمية متكاملة، وليس فقط التصميم التقليدي للمواقع. هذه المعايير تساعدك على تقييم العرض بدقة:\\n\\n- تصميم مواقع إلكترونية متوافقة مع مختلف الأجهزة: يجب أن يكون الموقع سهل الاستخدام على الهواتف الذكية والأجهزة اللوحية، لضمان وصول أوسع للعملاء.\\n- تطوير تطبيقات الجوال: توفر الشركة خدمات تطوير تطبي"
+  },
+  "sec_03": {
+    "section_type": "features",
+    "commercial_section_role": "features_included",
+    "brand_usage_policy": "brand_light",
+    "execution_mode": "taxonomy_breakdown",
+    "subheadings": [],
+    "blocks_in_prompt": [
+      "NUMBERED PROCESS MANDATE",
+      "BRAND-OWNED SECTION RULE",
+      "Evidence Density, Not SEO Filler",
+      "neutral_market"
+    ],
+    "must_include_details": [
+      "حوّل العنوان إلى معايير عملية يمكن للقارئ استخدامها.",
+      "اربط كل معيار بنتيجة أو قرار واضح.",
+      "اكتب المعايير في نقاط قابلة للمسح بدل فقرة طويلة عامة."
+    ],
+    "required_project_names": null,
+    "writer_output_preview": "{\n  \"content\": \"تتضمن حلول تصميم المواقع الاحترافية مجموعة من المعايير العملية التي تساهم في تحقيق أهداف الأعمال وتعزيز تجربة المستخدم النهائي. فيما يلي أبرز هذه المعايير مع ربط كل منها بنتيجة مباشرة أو قرار واضح:\\n\\n- وضوح هيكلية الصفحات: تسهّل على الزائر الوصول إلى المعلومات المطلوبة بسرعة، مما يزيد من فرص التفاعل والاحتفاظ بالمستخدم.\\n- توافق التصميم مع مختلف الأجهزة: يضمن ظهور الموقع بشكل متكا"
+  },
+  "sec_04": {
+    "section_type": "differentiation",
+    "commercial_section_role": "brand_differentiator",
+    "brand_usage_policy": "brand_owned",
+    "execution_mode": "brand_evidence_application",
+    "subheadings": [],
+    "blocks_in_prompt": [
+      "NUMBERED PROCESS MANDATE",
+      "BRAND-OWNED SECTION RULE",
+      "Evidence Density, Not SEO Filler",
+      "neutral_market"
+    ],
+    "must_include_details": [
+      "اربط دور البراند بالمشكلة العملية التي يحاول القارئ حلها.",
+      "اجعل ذكر البراند مساعدًا ومحددًا لا دعائيًا عامًا."
+    ],
+    "required_project_names": null,
+    "writer_output_preview": "{\n  \"content\": \"عند البحث عن شركة متخصصة في تصميم المواقع، يبرز دور Creative Minds من خلال تقديم خدمات رقمية متكاملة تعتمد على حلول عملية مدعومة بتقنيات حديثة وتنفيذ فعلي لمشاريع متنوعة.\\n\\nتغطي قدرات Creative Minds نطاقاً واسعاً من الخدمات الرقمية تشمل تصميم وتطوير المواقع باستخدام PHP وWordPress وReact JS، إضافة إلى تطوير تطبيقات الهواتف الذكية على منصتي Android وIOS. هذه التعددية التقنية تتيح ت"
+  },
+  "sec_05": {
+    "section_type": "proof",
+    "commercial_section_role": "proof",
+    "brand_usage_policy": "brand_owned",
+    "execution_mode": "brand_project_examples",
+    "subheadings": [],
+    "blocks_in_prompt": [
+      "NUMBERED PROCESS MANDATE",
+      "BRAND-OWNED SECTION RULE",
+      "required_project_names",
+      "Evidence Density, Not SEO Filler",
+      "neutral_market"
+    ],
+    "must_include_details": [
+      "اذكر أسماء المشاريع التالية بالترتيب أولًا: Billion، Baddel.",
+      "اذكر أسماء المشاريع أو العملاء أو دراسات الحالة المرصودة صراحة في أدلة البراند.",
+      "لا تحوّل هذا السكشن إلى معايير عامة لتقييم المشاريع.",
+      "إذا كان الموقع الجغرافي غير مدعوم، لا تربط المشاريع بالسعودية."
+    ],
+    "required_project_names": [
+      "Billion",
+      "Baddel"
+    ],
+    "writer_output_preview": "{\n  \"content\": \"تعرض هذه الفقرة أدلة عملية على خبرة Creative Minds في تنفيذ مشاريع تصميم المواقع والتجارب الرقمية، من خلال استعراض مشاريع محددة موثقة في مصادر البراند.\\n\\nمشروع Billion يمثل مثالاً على تطوير هوية رقمية متكاملة؛ حيث شمل العمل بناء علامة تجارية قوية وتصميم واجهات مستخدم سهلة الاستخدام لتطبيقات الهاتف المحمول، وهو ما يعكس قدرة الفريق على تقديم حلول تصميم متقدمة تدعم تميز العلامة التجا"
+  },
+  "sec_07": {
+    "section_type": "process",
+    "commercial_section_role": "process",
+    "brand_usage_policy": "brand_owned",
+    "execution_mode": "brand_process_delivery",
+    "subheadings": [
+      "الاستشارة وتحديد المتطلبات",
+      "التصميم الأولي وتطوير النموذج",
+      "برمجة الموقع واختباره",
+      "إطلاق الموقع والدعم المستمر"
+    ],
+    "blocks_in_prompt": [
+      "NUMBERED PROCESS MANDATE",
+      "BRAND-OWNED SECTION RULE",
+      "Evidence Density, Not SEO Filler",
+      "neutral_market"
+    ],
+    "must_include_details": [
+      "استخدم مراحل العمل المرصودة لدى البراند مثل Consultation & Planning وDesign & Development وExecution & Delivery عند توفرها.",
+      "اكتب العملية كطريقة تعامل مع البراند، لا كقائمة نصائح عامة لاختيار مزود خدمة."
+    ],
+    "required_project_names": null,
+    "writer_output_preview": "{\n  \"content\": \"تنفيذ مشروع تصميم الموقع مع Creative Minds يمر بمراحل عملية واضحة، تضمن تحقيق متطلبات العميل بدقة واحترافية في كل خطوة حتى تسليم الموقع وتشغيله.\\n\\n### الاستشارة وتحديد المتطلبات\\n1. **الاجتماع الأولي لفهم الأهداف**: تبدأ العملية بجلسة استشارية مع العميل لجمع كل المعلومات حول أهداف الموقع والفئة المستهدفة والتحديات التقنية.\\n2. **تحليل المتطلبات ووضع خطة العمل**: يُحلل فريق العمل ا"
+  },
+  "sec_08": {
+    "section_type": "faq",
+    "commercial_section_role": "faq",
+    "brand_usage_policy": "neutral_market",
+    "execution_mode": "buyer_guidance",
+    "subheadings": [
+      "هل يمكن تعديل التصميم بعد الإطلاق؟",
+      "هل تقدم الشركة دعمًا فنيًا بعد التسليم؟"
+    ],
+    "blocks_in_prompt": [
+      "FAQ BEHAVIOR",
+      "NUMBERED PROCESS MANDATE",
+      "BRAND-OWNED SECTION RULE",
+      "Evidence Density, Not SEO Filler",
+      "neutral_market"
+    ],
+    "must_include_details": [
+      "أجب عن كل سؤال مباشرة قبل أي تفصيل إضافي.",
+      "اجعل الإجابات قصيرة ومفيدة وغير مكررة للمتن السابق."
+    ],
+    "required_project_names": null,
+    "writer_output_preview": "{\n  \"content\": \"عند التفكير في اختيار وتنفيذ تصميم المواقع في السعودية، تظهر بعض الأسئلة العملية التي تشغل اهتمام أصحاب الأعمال. فيما يلي إجابات مختصرة ودقيقة لأكثر الاستفسارات شيوعًا:\\n\\n### هل يمكن تعديل التصميم بعد الإطلاق؟\\n\\nنعم، يمكن تعديل تصميم الموقع بعد الإطلاق بناءً على احتياجات العمل أو تحديثات الهوية البصرية. غالبًا ما يتطلب ذلك اتفاقًا إضافيًا أو خطة صيانة واضحة مع الجهة المنفذة.\\n\\n#"
+  },
+  "sec_09": {
+    "section_type": "conclusion",
+    "commercial_section_role": "cta",
+    "brand_usage_policy": "brand_cta",
+    "execution_mode": "buyer_guidance",
+    "subheadings": [],
+    "blocks_in_prompt": [
+      "NUMBERED PROCESS MANDATE",
+      "BRAND-OWNED SECTION RULE",
+      "DECISIVE CONCLUSION",
+      "Evidence Density, Not SEO Filler",
+      "neutral_market"
+    ],
+    "must_include_details": [
+      "لخّص القرار أو الفائدة النهائية دون إعادة تفاصيل السكاشن.",
+      "اختم بتوجيه عملي واضح يناسب نية المقال."
+    ],
+    "required_project_names": null,
+    "writer_output_preview": "{\n  \"content\": \"عندما تبحث عن افضل شركة تصميم مواقع في السعودية، ستجد أن Creative Minds تجمع بين الخبرة التقنية والتصميم الإبداعي لتقديم حلول رقمية متكاملة تدعم نمو أعمالك في بيئة تنافسية. تقدم الشركة خدمات تصميم وتطوير المواقع، وتتكامل مع تقنيات حديثة مثل الذكاء الاصطناعي، التسويق الرقمي، وتحليل الأداء، مما يمنح مشروعك الرقمي فرصة قوية للتميز والانتشار.\\n\\nللبدء بخطوة عملية نحو تحويل فكرتك إلى وا"
+  }
+}

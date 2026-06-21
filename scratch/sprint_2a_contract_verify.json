@@ -1,0 +1,49 @@
+{
+  "sec_01": {
+    "format": "paragraphs",
+    "taxonomy_axis": "introduction",
+    "must_include_details": [
+      "اكتب المقدمة في ثلاث فقرات متتالية (وليس نقاطًا): الفقرة الأولى hook يتضمن الكلمة المفتاحية بدون ذكر البراند.",
+      "الفقرة الثانية تقدّم Creative Minds بلطف كحل مرتبط بقدرة مرصودة واحدة أو اثنتين فقط.",
+      "الفقرة الثالثة soft CTA برابط markdown طبيعي إلى https://cems-it.com/.",
+      "لا تستخدم نقاطًا أو قوائم في المقدمة."
+    ],
+    "checks": {
+      "not_criteria": true,
+      "intro_paragraphs": true,
+      "features_brand": true,
+      "diff_forbids_proof": true
+    }
+  },
+  "sec_03": {
+    "format": "paragraphs",
+    "taxonomy_axis": "brand_features",
+    "must_include_details": [
+      "حوّل المميزات إلى قدرات تقنية وخدمات مرصودة لدى البراند، وليس نصائح عامة للبحث في السوق.",
+      "اذكر التقنيات أو الأنظمة المرصودة بأسمائها عند توفرها.",
+      "تجنب صيغ مثل تأكد أو اسأل أو اختر؛ اشرح ما يتوفر فعليًا لدى البراند."
+    ],
+    "checks": {
+      "not_criteria": true,
+      "intro_paragraphs": true,
+      "features_brand": true,
+      "diff_forbids_proof": true
+    }
+  },
+  "sec_04": {
+    "format": "paragraphs",
+    "taxonomy_axis": "brand_support",
+    "must_include_details": [
+      "لا تذكر أسماء المشاريع التالية في هذا السكشن (محجوزة لسكشن الأدلة): Billion، Baddel.",
+      "اربط دور البراند بالمشكلة العملية التي يحاول القارئ حلها.",
+      "اجعل ذكر البراند مساعدًا ومحددًا لا دعائيًا عامًا.",
+      "استخدم الخدمات والتقنيات ومراحل العمل المرصودة فقط؛ لا تذكر أسماء مشاريع portfolio هنا."
+    ],
+    "checks": {
+      "not_criteria": true,
+      "intro_paragraphs": true,
+      "features_brand": true,
+      "diff_forbids_proof": true
+    }
+  }
+}

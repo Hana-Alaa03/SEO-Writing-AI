@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEO Writing AI - Dual Mode Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0d11;
+            --surface-color: rgba(255, 255, 255, 0.03);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+            --accent-color: #6366f1;
+            --accent-hover: #4f46e5;
+            --gradient-start: #4facfe;
+            --gradient-end: #00f2fe;
+            --error-color: #ef4444;
+            --success-color: #10b981;
+            --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            width: 100%;
+            padding: 3rem 0;
+            text-align: center;
+            background: radial-gradient(circle at top, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 3rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            margin-top: 0.75rem;
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            padding: 0 2rem;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        /* Mode Switcher Styles */
+        .mode-switcher {
+            display: flex;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 0.5rem;
+            border-radius: 14px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 1rem;
+            border-radius: 10px;
+            border: none;
+            background: none;
+            color: var(--text-secondary);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .mode-btn small {
+            font-size: 0.7rem;
+            font-weight: 400;
+            opacity: 0.7;
+        }
+
+        .mode-btn.active {
+            color: white;
+            background: rgba(99, 102, 241, 0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .mode-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -0.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 2px;
+            background: var(--accent-color);
+            box-shadow: 0 0 10px var(--accent-color);
+        }
+
+        .card {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 2.5rem;
+            backdrop-filter: blur(20px);
+            box-shadow: var(--card-shadow);
+        }
+
+        .form-section {
+            display: none;
+            animation: slideUp 0.4s ease-out;
+        }
+
+        .form-section.active {
+            display: block;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+
+        .full-width {
+            grid-column: span 2;
+        }
+
+        label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.9rem 1.2rem;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            background: rgba(99, 102, 241, 0.03);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+
+        /* Fix for select options contrast in dark mode */
+        select option {
+            background-color: #1a1c23;
+            color: white;
+        }
+
+
+        .url-item {
+            background: rgba(255, 255, 255, 0.015);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 1.5rem;
+            align-items: flex-end;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.8rem 1.5rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+            color: white;
+            border: none;
+            padding: 1.2rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 2rem;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4);
+        }
+
+        /* New Results UI */
+        .result-card {
+            display: none;
+            margin-top: 1rem;
+        }
+
+        .tab-btn {
+            padding: 1rem 2rem;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab-btn.active {
+            color: var(--accent-color);
+            border-bottom-color: var(--accent-color);
+        }
+
+        .content-area {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 1rem;
+            max-height: 600px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+        }
+
+        .loader {
+            display: none;
+            width: 22px;
+            height: 22px;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .form-group small {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            background: rgba(0, 0, 0, 0.15);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .checkbox-control {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .workflow-mode-panel {
+            background: rgba(79, 172, 254, 0.05);
+            border: 1px solid rgba(79, 172, 254, 0.18);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .workflow-mode-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1rem;
+        }
+
+        .workflow-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            background: rgba(0, 0, 0, 0.18);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem;
+        }
+
+        .workflow-option-title {
+            display: block;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: none;
+            letter-spacing: 0;
+            margin-bottom: 0.3rem;
+        }
+
+        .workflow-option small,
+        .workflow-help {
+            color: var(--text-secondary);
+            font-size: 0.78rem;
+            line-height: 1.5;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+
+        .approved-outline-panel {
+            display: none;
+            margin-top: 1rem;
+        }
+
+        .approved-outline-panel.active {
+            display: block;
+        }
+
+        #approved-outline {
+            min-height: 180px;
+            font-family: Consolas, Monaco, monospace;
+            direction: ltr;
+            text-align: left;
+        }
+
+        /* Premium File Upload Styles */
+        .file-upload-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .custom-file-input {
+            position: relative;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .custom-file-input:hover {
+            border-color: var(--accent-color);
+            background: rgba(99, 102, 241, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .custom-file-input input[type="file"] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .file-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .file-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .file-name {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--accent-color);
+            margin-top: 0.5rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Apple-style Toggle Switch */
+        .toggle-container {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .toggle-container input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.1);
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        input:checked+.slider {
+            background-color: var(--accent-color);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(20px);
+        }
+
+        .section-header {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 1.5rem 0 1rem 0;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .section-header i {
+            color: var(--accent-color);
+            font-size: 1.2rem;
+        }
+
+        .file-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        /* Faded / Disabled State for Image Section */
+        .section-disabled {
+            opacity: 0.4;
+            pointer-events: none;
+            filter: grayscale(0.5);
+            transition: all 0.4s ease;
+        }
+
+        .toggle-label-text {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--accent-color);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <h1>SEO Writing AI</h1>
+        <p>Premium Dual-Mode Content Architecture</p>
+    </div>
+
+    <div class="container">
+        <!-- Mode Switcher -->
+        <div class="mode-switcher">
+            <button class="mode-btn active" id="core-mode-btn" onclick="switchInterface('core')">
+                <span>CORE MODE</span>
+                <small>Full AI Autopilot</small>
+            </button>
+            <button class="mode-btn" id="advanced-mode-btn" onclick="switchInterface('advanced')">
+                <span>ADVANCED MODE</span>
+                <small>Granular Controls</small>
+            </button>
+        </div>
+
+        <div class="card">
+            <form id="main-form">
+                <!-- Shared Top Fields (Visible in both) -->
+                <div class="form-grid" style="margin-bottom: 2rem;">
+                    <div class="form-group full-width">
+                        <label>Topic / Title *</label>
+                        <input type="text" id="title" required placeholder="Enter the primary objective of the article">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Primary Keyword *</label>
+                        <input type="text" id="keywords" required placeholder="e.g. SEO Services Riyadh">
+                    </div>
+                </div>
+
+                <!-- CORE MODE INTERFACE -->
+                <div id="core-interface" class="form-section active">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Language</label>
+                            <select id="core-language">
+                                <option value="">Auto-Detect (Recommended)</option>
+                                <option value="ar">Arabic</option>
+                                <option value="en">English</option>
+                                <option value="fr">French</option>
+                                <option value="es">Spanish</option>
+                                <option value="de">German</option>
+                                <option value="it">Italian</option>
+                                <option value="pt">Portuguese</option>
+                                <option value="tr">Turkish</option>
+                                <option value="ru">Russian</option>
+                                <option value="zh">Chinese</option>
+                                <option value="ja">Japanese</option>
+                                <option value="ko">Korean</option>
+                                <option value="hi">Hindi</option>
+                                <option value="id">Indonesian</option>
+                                <option value="ms">Malay</option>
+                                <option value="vi">Vietnamese</option>
+                                <option value="th">Thai</option>
+                                <option value="nl">Dutch</option>
+                                <option value="pl">Polish</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Target Location (area)</label>
+                            <input type="text" id="core-area" placeholder="e.g. Riyadh, Dubai (Optional)">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Reference Article (URL / HTML / File)</label>
+                            <div style="display: flex; gap: 1rem; align-items: flex-start;">
+                                <textarea id="core-style-ref" style="flex: 1;" rows="2" placeholder="Paste a link or HTML content..."></textarea>
+                                <div class="custom-file-input" style="flex: 0 0 200px; padding: 0.75rem;">
+                                    <i class="fas fa-file-upload file-icon" style="font-size: 1rem; margin-bottom: 0.25rem;"></i>
+                                    <span class="file-label" style="font-size: 0.7rem;">Or Upload HTML</span>
+                                    <span class="file-name" id="core-style-file-name" style="font-size: 0.6rem;">No file</span>
+                                    <input type="file" id="core-style-file-upload" accept=".html,.htm,.txt,.md" onchange="updateFileName(this, 'core-style-file-name')">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Brand Assets in Core Mode (Media) -->
+                        <div class="full-width">
+                            <div class="section-header">
+                                <i class="fas fa-images"></i> Media & Brand Assets
+                                <div style="margin-left: auto; display: flex; align-items: center; gap: 0.75rem;">
+                                    <span class="toggle-label-text">Generate Images</span>
+                                    <label class="toggle-container">
+                                        <input type="checkbox" id="core-gen-images" checked onchange="toggleImageSection('core')">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div id="core-image-section">
+                                <div class="file-grid">
+                                <div class="custom-file-input">
+                                    <i class="fas fa-image file-icon"></i>
+                                    <span class="file-label">Brand Logo (Optional)</span>
+                                    <span class="file-name" id="core-logo-name">No file selected</span>
+                                    <input type="file" id="core-logo-file" accept="image/*" onchange="updateFileName(this, 'core-logo-name')">
+                                </div>
+                                <div class="custom-file-input">
+                                    <i class="fas fa-palette file-icon"></i>
+                                    <span class="file-label">Style Reference (Optional)</span>
+                                    <span class="file-name" id="core-style-name">No file selected</span>
+                                    <input type="file" id="core-style-file" accept="image/*" onchange="updateFileName(this, 'core-style-name')">
+                                </div> <!-- closes custom-file-input -->
+                            </div> <!-- closes file-grid -->
+                        </div> <!-- closes core-image-section -->
+                    </div> <!-- closes full-width -->
+                </div> <!-- closes form-grid -->
+
+                <!-- Internal Links inside Core Mode -->
+                <div id="core-internal-links-section">
+                    <div class="section-header"><i class="fas fa-link"></i> Internal URLs / Brand URL</div>
+                    <div id="core-internal-url-container">
+                        <div class="url-item">
+                            <div class="form-group" style="flex: 2;">
+                                <label>URL</label>
+                                <input type="text" class="url-link" placeholder="https://yourbrand.com/page">
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label>Anchor Text</label>
+                                <input type="text" class="url-text" placeholder="Title">
+                            </div>
+                            <div class="form-group" style="width: 64px;">
+                                <label>Brand</label>
+                                <div style="height: 48px; display: flex; align-items: center; justify-content: center;">
+                                    <label class="toggle-container">
+                                        <input type="checkbox" class="is-brand" onchange="exclusiveBrand(this)">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-secondary"
+                                style="color: var(--error-color); height: 48px; width: 48px; padding: 0; align-self: flex-end;"
+                                onclick="removeUrl(this)">✕</button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-secondary" style="margin-top: 1rem;"
+                        onclick="addCoreInternalUrlField()">+ Add Internal Link</button>
+                </div>
+
+            </div> <!-- closes core-interface -->
+
+            <!-- ADVANCED MODE INTERFACE -->
+            <div id="advanced-interface" class="form-section">
+                <div class="form-grid">
+                        <!-- Writing Controls -->
+                        <div class="form-group">
+                            <label>Article Type</label>
+                            <select id="adv-type">
+                                <option value="informational">informational</option>
+                                <option value="commercial">commercial</option>
+                                <option value="comparison">comparison</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Tone</label>
+                            <select id="adv-tone">
+                                <option value="professional">Professional Expert</option>
+                                <option value="persuasive">Persuasive / Sales</option>
+                                <option value="casual">Friendly / Casual</option>
+                                <option value="technical">Technical / Academic</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Point of View</label>
+                            <select id="adv-pov">
+                                <option value="2nd person">2nd person (You)</option>
+                                <option value="1st person singular">1st person singular (I)</option>
+                                <option value="1st person plural">1st person plural (We)</option>
+                                <option value="3rd person">3rd person (He/She/They)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Article Size</label>
+                            <select id="adv-size">
+                                <option value="1000">1000 words</option>
+                                <option value="2000">2000 words</option>
+                                <option value="3000">3000+</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Language</label>
+                            <select id="adv-language">
+                                <option value="ar">Arabic (العربية)</option>
+                                <option value="en">English (US)</option>
+                                <option value="en-gb">English (UK)</option>
+                                <option value="fr">French (Français)</option>
+                                <option value="de">German (Deutsch)</option>
+                                <option value="es">Spanish (Español)</option>
+                                <option value="it">Italian (Italiano)</option>
+                                <option value="pt">Portuguese (Português)</option>
+                                <option value="tr">Turkish (Türkçe)</option>
+                                <option value="ru">Russian (Русский)</option>
+                                <option value="zh">Chinese (中文)</option>
+                                <option value="ja">Japanese (日本語)</option>
+                                <option value="ko">Korean (한국어)</option>
+                                <option value="hi">Hindi (हिन्दी)</option>
+                                <option value="id">Indonesian (Bahasa Indonesia)</option>
+                                <option value="ms">Malay (Bahasa Melayu)</option>
+                                <option value="vi">Vietnamese (Tiếng Việt)</option>
+                                <option value="th">Thai (ไทย)</option>
+                                <option value="nl">Dutch (Nederlands)</option>
+                                <option value="pl">Polish (Polski)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Target Area (Location)</label>
+                            <input type="text" id="adv-area" placeholder="e.g. Riyadh, Dubai (Optional)">
+                        </div>
+
+                        <div class="full-width">
+                            <div class="section-header"><i class="fas fa-pen-nib"></i> Brand Voice & Persona</div>
+                            <div class="form-group" style="margin-bottom: 1.5rem;">
+                                <label>Brand Voice (text description)</label>
+                                <input type="text" id="adv-voice" placeholder="e.g. A senior architect who is helpful but straight to the point">
+                            </div>
+                            
+                            <div class="file-grid">
+                                <div class="custom-file-input">
+                                    <i class="fas fa-file-alt file-icon"></i>
+                                    <span class="file-label">Brand Voice (upload guidelines)</span>
+                                    <span class="file-name" id="adv-guidelines-name">Upload Guidelines (Optional)</span>
+                                    <input type="file" id="adv-voice-guidelines" onchange="updateFileName(this, 'adv-guidelines-name')">
+                                </div>
+
+                                <div class="custom-file-input">
+                                    <i class="fas fa-file-contract file-icon"></i>
+                                    <span class="file-label">Brand Voice (example articles)</span>
+                                    <span class="file-name" id="adv-examples-name">Upload Examples (Optional)</span>
+                                    <input type="file" id="adv-voice-examples" onchange="updateFileName(this, 'adv-examples-name')">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Structure Controls -->
+                        <div class="full-width" style="margin-top: 1rem;">
+                            <label style="margin-bottom: 1rem; display: block;">Structure & Formatting</label>
+                            <div class="controls-grid">
+                                <label class="checkbox-control"><input type="checkbox" id="ctrl-conclusion" checked>
+                                    Conclusion</label>
+                                <label class="checkbox-control"><input type="checkbox" id="ctrl-faq" checked> FAQ
+                                    Section</label>
+                                <label class="checkbox-control"><input type="checkbox" id="ctrl-tables" checked> Data
+                                    Tables</label>
+                                <label class="checkbox-control"><input type="checkbox" id="ctrl-lists" checked> Bullet
+                                    Lists</label>
+                                <label class="checkbox-control"><input type="checkbox" id="ctrl-comparison" checked>
+                                    Comparison Blocks</label>
+                                <label class="checkbox-control"><input type="checkbox" id="ctrl-bold" checked> Bold Key
+                                    Terms</label>
+                            </div>
+                        </div>
+
+                        <!-- Media Control -->
+                        <div class="full-width">
+                            <div class="section-header">
+                                <i class="fas fa-images"></i> Media Parameters
+                                <div style="margin-left: auto; display: flex; align-items: center; gap: 0.75rem;">
+                                    <span class="toggle-label-text">Generate Images</span>
+                                    <label class="toggle-container">
+                                        <input type="checkbox" id="adv-gen-images" checked onchange="toggleImageSection('adv')">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div id="adv-image-section">
+                                <!-- Brand Assets inside Media -->
+                            <div class="file-grid" style="margin-bottom: 2rem;">
+                                <div class="custom-file-input">
+                                    <i class="fas fa-image file-icon"></i>
+                                    <span class="file-label">Brand Logo (Optional)</span>
+                                    <span class="file-name" id="adv-logo-name">No file selected</span>
+                                    <input type="file" id="adv-logo-file" accept="image/*" onchange="updateFileName(this, 'adv-logo-name')">
+                                </div>
+                                <div class="custom-file-input">
+                                    <i class="fas fa-palette file-icon"></i>
+                                    <span class="file-label">Style Reference (Optional)</span>
+                                    <span class="file-name" id="adv-style-name">No file selected</span>
+                                    <input type="file" id="adv-style-file" accept="image/*" onchange="updateFileName(this, 'adv-style-name')">
+                                </div>
+                            </div>
+
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Number of images (default 7)</label>
+                                    <input type="number" id="adv-img-num" value="7" min="0" max="15">
+                                </div>
+                                <div class="form-group">
+                                    <label>Image type</label>
+                                    <select id="adv-img-style">
+                                        <option value="mixed">mixed</option>
+                                        <option value="illustration">illustration</option>
+                                        <option value="infographic">infographic</option>
+                                        <option value="mockup">mockup</option>
+                                        <option value="isometric">isometric 3D</option>
+                                        <option value="photorealistic">photorealistic</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Image Size</label>
+                                    <select id="adv-img-size">
+                                        <option value="1024x1024">Square (1024x1024)</option>
+                                        <option value="1792x1024">Wide (1792x1024)</option>
+                                        <option value="1024x1792">Portrait (1024x1792)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group"
+                                    style="display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: 0.5rem; gap: 0.5rem;">
+                                    <label class="checkbox-control"><input type="checkbox" id="ctrl-featured" checked>
+                                        Featured image</label>
+                                    <label class="checkbox-control"><input type="checkbox" id="ctrl-branding-frame">
+                                        custom branding frame</label>
+                                </div> <!-- closes form-grid -->
+                            </div> <!-- closes adv-image-section -->
+                        </div> <!-- closes full-width (Media Parameters) -->
+
+                        <!-- SEO Controls -->
+                        <div class="full-width">
+                            <div class="section-header"><i class="fas fa-search-plus"></i> SEO Controls</div>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Custom keyword density</label>
+                                    <input type="number" id="adv-density" step="0.1" placeholder="e.g. 1.5">
+                                </div>
+                                <div class="form-group">
+                                    <label>Competitor count</label>
+                                    <select id="adv-comp-count">
+                                        <option value="3">top 3</option>
+                                        <option value="5" selected>top 5</option>
+                                        <option value="10">top 10</option>
+                                    </select>
+                                </div>
+                                <div class="form-group full-width">
+                                    <label>Reference Article (URL / HTML / File)</label>
+                                    <div style="display: flex; gap: 1rem; align-items: flex-start;">
+                                        <textarea id="adv-style-ref" style="flex: 1;" rows="2" placeholder="Paste a link or HTML content..."></textarea>
+                                        <div class="custom-file-input" style="flex: 0 0 200px; padding: 0.75rem;">
+                                            <i class="fas fa-file-upload file-icon" style="font-size: 1rem; margin-bottom: 0.25rem;"></i>
+                                            <span class="file-label" style="font-size: 0.7rem;">Or Upload HTML</span>
+                                            <span class="file-name" id="adv-style-file-name" style="font-size: 0.6rem;">No file</span>
+                                            <input type="file" id="adv-style-file-upload" accept=".html,.htm,.txt,.md" onchange="updateFileName(this, 'adv-style-file-name')">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group full-width">
+                                    <label>Custom secondary keywords</label>
+                                    <input type="text" id="adv-sec-keywords"
+                                        placeholder="Enter keywords separated by commas">
+                                </div>
+                            </div> <!-- closes form-grid inside SEO Controls -->
+                        </div> <!-- closes full-width SEO Controls -->
+                    </div> <!-- closes form-grid of advanced-interface -->
+
+                    <!-- External Links Section (Advanced Only) -->
+                    <div id="external-links-section" style="display: block; width: 100%; margin-top: 1.5rem; grid-column: 1 / -1;">
+                        <div class="section-header"><i class="fas fa-link"></i> External URLs</div>
+                        <div id="external-url-container">
+                            <div class="url-item">
+                                <div class="form-group" style="flex: 2;">
+                                    <label>URL</label>
+                                    <input type="text" class="url-link" placeholder="https://example.com/article">
+                                </div>
+                                <div class="form-group" style="flex: 1;">
+                                    <label>Anchor Text</label>
+                                    <input type="text" class="url-text" placeholder="Title">
+                                </div>
+                                <div class="form-group" style="width: 64px;">
+                                    <label>&nbsp;</label>
+                                    <div style="height: 48px; display: flex; align-items: center; justify-content: center;"></div>
+                                </div>
+                                <button type="button" class="btn-secondary"
+                                    style="color: var(--error-color); height: 48px; width: 48px; padding: 0; align-self: flex-end;"
+                                    onclick="removeUrl(this)">✕</button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-secondary" style="margin-top: 1rem;"
+                            onclick="addExternalUrlField()">+ Add External Link</button>
+                    </div> <!-- closes external-url-container -->
+                </div> <!-- closes external-links-section -->
+
+                    <!-- Internal Links inside Advanced Mode -->
+                    <div id="adv-internal-links-section" style="display: block; width: 100%; margin-top: 1.5rem; grid-column: 1 / -1;">
+                        <div class="section-header"><i class="fas fa-link"></i> Internal URLs / Brand URL</div>
+                        <div id="internal-url-container">
+                            <div class="url-item">
+                                <div class="form-group" style="flex: 2;">
+                                    <label>URL</label>
+                                    <input type="text" class="url-link" placeholder="https://yourbrand.com/page">
+                                </div>
+                                <div class="form-group" style="flex: 1;">
+                                    <label>Anchor Text</label>
+                                    <input type="text" class="url-text" placeholder="Title">
+                                </div>
+                                <div class="form-group" style="width: 64px;">
+                                    <label>Brand</label>
+                                    <div style="height: 48px; display: flex; align-items: center; justify-content: center;">
+                                        <label class="toggle-container">
+                                            <input type="checkbox" class="is-brand" onchange="exclusiveBrand(this)">
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn-secondary"
+                                    style="color: var(--error-color); height: 48px; width: 48px; padding: 0; align-self: flex-end;"
+                                    onclick="removeUrl(this)">✕</button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-secondary" style="margin-top: 1rem;"
+                            onclick="addInternalUrlField()">+ Add Internal Link</button>
+                    </div>
+
+            </div> <!-- closes advanced-interface -->
+
+            <!-- Workflow Mode Controls -->
+            <div class="workflow-mode-panel">
+                <div class="section-header"><i class="fas fa-route"></i> Workflow Output Mode</div>
+                <div class="workflow-mode-grid">
+                    <div class="workflow-option">
+                        <div>
+                            <label class="workflow-option-title" for="heading-only-mode">Heading only mode</label>
+                            <small>Run research and outline generation only. Use this when you want headings for review.</small>
+                        </div>
+                        <label class="toggle-container">
+                            <input type="checkbox" id="heading-only-mode">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="workflow-option">
+                        <div>
+                            <label class="workflow-option-title" for="content-only-mode">Content only mode</label>
+                            <small>Write the article from an approved outline. This automatically sends heading_only_mode=false.</small>
+                        </div>
+                        <label class="toggle-container">
+                            <input type="checkbox" id="content-only-mode">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="workflow-option">
+                        <div>
+                            <label class="workflow-option-title" for="content-stage-only-mode">Stop after content writing</label>
+                            <small>Generate headings with v2 prompts, write the sections, then return a markdown draft without final assembly/rendering.</small>
+                        </div>
+                        <label class="toggle-container">
+                            <input type="checkbox" id="content-stage-only-mode" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="workflow-option">
+                        <div>
+                            <label class="workflow-option-title" for="disable-outline-repair">Disable Outline Repair (Diagnostic)</label>
+                            <small>Bypass mutating/structural repair post-processing steps to diagnose raw outline generation quality.</small>
+                        </div>
+                        <label class="toggle-container">
+                            <input type="checkbox" id="disable-outline-repair">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div id="approved-outline-panel" class="approved-outline-panel">
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label>Approved Outline JSON</label>
+                        <textarea id="approved-outline" rows="8" placeholder="Paste final_heading_response JSON, outline_structure, or the outline array here..."></textarea>
+                        <small>Required only when Content only mode is enabled. Paste the final heading response exactly as returned by the previous run.</small>
+                    </div>
+                </div>
+                <small class="workflow-help" id="workflow-mode-note">Default run from this screen stops after content writing. Uncheck it for the full article workflow.</small>
+            </div>
+
+            <!-- Global Action Bar (Always Visible) -->
+            <div style="padding-top: 2rem; border-top: 1px solid var(--border-color); margin-top: 2rem;">
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    <span>Generate Content</span>
+                    <div class="loader" id="loader"></div>
+                </button>
+            </div>
+        </form>
+    </div>
+
+        <!-- Result Card -->
+        <div class="card result-card" id="result-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div id="status-text"></div>
+                <a id="view-page-btn" target="_blank" class="btn-secondary"
+                    style="background: var(--success-color); color: white; border: none; display: none;">View Live
+                    Article ↗</a>
+            </div>
+
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button class="tab-btn active" onclick="switchOutputTab('markdown')">Markdown</button>
+                <button class="tab-btn" onclick="switchOutputTab('html')">HTML Code</button>
+            </div>
+
+            <div id="markdown-view" class="content-area">
+                <pre id="markdown-out" style="white-space: pre-wrap;"></pre>
+            </div>
+            <div id="html-view" class="content-area" style="display: none;">
+                <pre id="html-out" style="color: var(--accent-color); font-family: monospace;"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = 'core';
+
+        function switchInterface(mode) {
+            currentMode = mode;
+            document.getElementById('core-interface').classList.toggle('active', mode === 'core');
+            document.getElementById('advanced-interface').classList.toggle('active', mode === 'advanced');
+            document.getElementById('core-mode-btn').classList.toggle('active', mode === 'core');
+            document.getElementById('advanced-mode-btn').classList.toggle('active', mode === 'advanced');
+            
+            // Hide external links in core mode as requested
+            document.getElementById('external-links-section').style.display = (mode === 'core') ? 'none' : 'block';
+        }
+
+        function syncWorkflowModeControls() {
+            const headingOnly = document.getElementById('heading-only-mode');
+            const contentOnly = document.getElementById('content-only-mode');
+            const contentStageOnly = document.getElementById('content-stage-only-mode');
+            const approvedOutlinePanel = document.getElementById('approved-outline-panel');
+            const note = document.getElementById('workflow-mode-note');
+
+            if (contentOnly.checked) {
+                headingOnly.checked = false;
+                headingOnly.disabled = true;
+                approvedOutlinePanel.classList.add('active');
+                contentStageOnly.disabled = false;
+                note.textContent = contentStageOnly.checked
+                    ? 'Content only mode will use the approved outline and stop after section writing.'
+                    : 'Content only mode will use the approved outline and continue through the full article workflow.';
+            } else if (headingOnly.checked) {
+                contentStageOnly.checked = false;
+                contentStageOnly.disabled = true;
+                headingOnly.disabled = false;
+                approvedOutlinePanel.classList.remove('active');
+                note.textContent = 'Heading only mode will stop after the reviewed outline is generated.';
+            } else {
+                headingOnly.disabled = false;
+                contentStageOnly.disabled = false;
+                approvedOutlinePanel.classList.remove('active');
+                note.textContent = contentStageOnly.checked
+                    ? 'This run will generate headings with v2 prompts, write content, then stop before final assembly/rendering.'
+                    : 'Full workflow mode is active. Turn on Heading only for headings, or Content only to write from a reviewed outline.';
+            }
+        }
+
+        document.getElementById('heading-only-mode').addEventListener('change', syncWorkflowModeControls);
+        document.getElementById('content-only-mode').addEventListener('change', syncWorkflowModeControls);
+        document.getElementById('content-stage-only-mode').addEventListener('change', syncWorkflowModeControls);
+        syncWorkflowModeControls();
+
+        function toggleImageSection(mode) {
+            const isChecked = document.getElementById(`${mode}-gen-images`).checked;
+            const section = document.getElementById(`${mode}-image-section`);
+            
+            if (isChecked) {
+                section.classList.remove('section-disabled');
+                section.querySelectorAll('input, select').forEach(el => el.disabled = false);
+            } else {
+                section.classList.add('section-disabled');
+                section.querySelectorAll('input, select').forEach(el => el.disabled = true);
+            }
+        }
+
+        function updateFileName(input, targetId) {
+            const fileName = input.files[0] ? input.files[0].name : 'No file selected';
+            document.getElementById(targetId).textContent = fileName;
+        }
+
+        function addInternalUrlField() {
+            const container = document.getElementById('internal-url-container');
+            const div = document.createElement('div');
+            div.className = 'url-item';
+            div.innerHTML = `
+                <div class="form-group" style="flex: 2;">
+                    <label>URL</label>
+                    <input type="text" class="url-link" placeholder="https://yourbrand.com/page">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>Anchor Text</label>
+                    <input type="text" class="url-text" placeholder="Title">
+                </div>
+                <div class="form-group" style="width: 64px;">
+                    <label>Brand</label>
+                    <div style="height: 48px; display: flex; align-items: center; justify-content: center;">
+                        <label class="toggle-container">
+                            <input type="checkbox" class="is-brand" onchange="exclusiveBrand(this)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <button type="button" class="btn-secondary" style="color: var(--error-color); height: 48px; width: 48px; padding: 0; align-self: flex-end;" onclick="removeUrl(this)">✕</button>
+            `;
+            container.appendChild(div);
+        }
+
+        function addCoreInternalUrlField() {
+            const container = document.getElementById('core-internal-url-container');
+            const div = document.createElement('div');
+            div.className = 'url-item';
+            div.innerHTML = `
+                <div class="form-group" style="flex: 2;">
+                    <label>URL</label>
+                    <input type="text" class="url-link" placeholder="https://yourbrand.com/page">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>Anchor Text</label>
+                    <input type="text" class="url-text" placeholder="Title">
+                </div>
+                <div class="form-group" style="width: 64px;">
+                    <label>Brand</label>
+                    <div style="height: 48px; display: flex; align-items: center; justify-content: center;">
+                        <label class="toggle-container">
+                            <input type="checkbox" class="is-brand" onchange="exclusiveBrand(this)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <button type="button" class="btn-secondary" style="color: var(--error-color); height: 48px; width: 48px; padding: 0; align-self: flex-end;" onclick="removeUrl(this)">✕</button>
+            `;
+            container.appendChild(div);
+        }
+
+        function addExternalUrlField() {
+            const container = document.getElementById('external-url-container');
+            const div = document.createElement('div');
+            div.className = 'url-item';
+            div.innerHTML = `
+                <div class="form-group" style="flex: 2;">
+                    <label>URL</label>
+                    <input type="text" class="url-link" placeholder="https://example.com/article">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>Anchor Text</label>
+                    <input type="text" class="url-text" placeholder="Title">
+                </div>
+                <div class="form-group" style="width: 64px;">
+                    <label>&nbsp;</label>
+                    <div style="height: 48px; display: flex; align-items: center; justify-content: center;"></div>
+                </div>
+                <button type="button" class="btn-secondary" style="color: var(--error-color); height: 48px; width: 48px; padding: 0;" onclick="removeUrl(this)">✕</button>
+            `;
+            container.appendChild(div);
+        }
+
+        function removeUrl(btn) {
+            if (document.querySelectorAll('.url-item').length > 1) {
+                btn.closest('.url-item').remove();
+            }
+        }
+
+        function exclusiveBrand(cb) {
+            if (cb.checked) {
+                document.querySelectorAll('.is-brand').forEach(other => {
+                    if (other !== cb) other.checked = false;
+                });
+            }
+        }
+
+        function switchOutputTab(type) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('markdown-view').style.display = 'none';
+            document.getElementById('html-view').style.display = 'none';
+
+            event.target.classList.add('active');
+            document.getElementById(`${type}-view`).style.display = 'block';
+        }
+
+        document.getElementById('main-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const contentOnlyMode = document.getElementById('content-only-mode').checked;
+            const headingOnlyMode = contentOnlyMode ? false : document.getElementById('heading-only-mode').checked;
+            const contentStageOnlyMode = headingOnlyMode ? false : document.getElementById('content-stage-only-mode').checked;
+            const approvedOutline = document.getElementById('approved-outline').value.trim();
+
+            if (contentOnlyMode && !approvedOutline) {
+                alert('Content only mode needs an approved outline JSON before running.');
+                return;
+            }
+
+            const submitBtn = document.getElementById('submitBtn');
+            const loader = document.getElementById('loader');
+            const btnText = submitBtn.querySelector('span');
+
+            btnText.textContent = 'Processing Data...';
+            loader.style.display = 'block';
+            submitBtn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('title', document.getElementById('title').value);
+
+            const kw = document.getElementById('keywords').value.split(',').map(s => s.trim());
+            formData.append('keywords', JSON.stringify(kw));
+
+            // Collect Internal URLs (from mode-specific container)
+            const internalUrlData = [];
+            const internalContainerId = (currentMode === 'core') ? '#core-internal-url-container' : '#internal-url-container';
+            document.querySelectorAll(`${internalContainerId} .url-item`).forEach(item => {
+                const link = item.querySelector('.url-link').value.trim();
+                const text = item.querySelector('.url-text').value.trim();
+                const isBrand = item.querySelector('.is-brand').checked;
+                if (link) internalUrlData.push({ link, text, is_brand: isBrand });
+            });
+            formData.append('urls', JSON.stringify(internalUrlData));
+
+            // Collect External URLs
+            const externalUrlData = [];
+            document.querySelectorAll('#external-url-container .url-item').forEach(item => {
+                const link = item.querySelector('.url-link').value.trim();
+                const text = item.querySelector('.url-text').value.trim();
+                if (link) externalUrlData.push({ link, text });
+            });
+            formData.append('external_urls', JSON.stringify(externalUrlData));
+
+            formData.append('workflow_mode', currentMode);
+            formData.append('heading_only_mode', headingOnlyMode ? 'true' : 'false');
+            formData.append('content_only_mode', contentOnlyMode ? 'true' : 'false');
+            formData.append('content_stage_only_mode', contentStageOnlyMode ? 'true' : 'false');
+            formData.append('approved_outline', approvedOutline);
+            formData.append('disable_outline_repair', document.getElementById('disable-outline-repair').checked ? 'true' : 'false');
+
+            if (currentMode === 'core') {
+                formData.append('article_language', document.getElementById('core-language').value);
+                formData.append('area', document.getElementById('core-area').value);
+                formData.append('style_reference', document.getElementById('core-style-ref').value);
+                const styleFile = document.getElementById('core-style-file-upload').files[0];
+                if (styleFile) formData.append('style_file', styleFile);
+            } else {
+                formData.append('tone', document.getElementById('adv-tone').value);
+                formData.append('pov', document.getElementById('adv-pov').value);
+                formData.append('article_type', document.getElementById('adv-type').value);
+                formData.append('article_size', document.getElementById('adv-size').value);
+                formData.append('article_language', document.getElementById('adv-language').value);
+                formData.append('area', document.getElementById('adv-area').value);
+                formData.append('brand_voice_description', document.getElementById('adv-voice').value);
+                formData.append('style_reference', document.getElementById('adv-style-ref').value);
+                const styleFileAdv = document.getElementById('adv-style-file-upload').files[0];
+                if (styleFileAdv) formData.append('style_file', styleFileAdv);
+
+                // Files
+                const voiceGuidelines = document.getElementById('adv-voice-guidelines').files[0];
+                if (voiceGuidelines) formData.append('brand_voice_guidelines', voiceGuidelines);
+
+                const voiceExamples = document.getElementById('adv-voice-examples').files[0];
+                if (voiceExamples) formData.append('brand_voice_examples', voiceExamples);
+
+                // Structure
+                formData.append('include_conclusion', document.getElementById('ctrl-conclusion').checked);
+                formData.append('include_faq', document.getElementById('ctrl-faq').checked);
+                formData.append('include_tables', document.getElementById('ctrl-tables').checked);
+                formData.append('include_bullet_lists', document.getElementById('ctrl-lists').checked);
+                formData.append('include_comparison_blocks', document.getElementById('ctrl-comparison').checked);
+                formData.append('bold_key_terms', document.getElementById('ctrl-bold').checked);
+
+                // Media
+                formData.append('image_style', document.getElementById('adv-img-style').value);
+                formData.append('image_size', document.getElementById('adv-img-size').value);
+                formData.append('num_images', document.getElementById('adv-img-num').value);
+                formData.append('generate_images', document.getElementById('adv-gen-images').checked);
+                formData.append('include_featured_image', document.getElementById('ctrl-featured').checked);
+                formData.append('custom_branding_frame', document.getElementById('ctrl-branding-frame').checked);
+
+                // SEO
+                const density = document.getElementById('adv-density').value;
+                if (density) formData.append('custom_keyword_density', density);
+                formData.append('competitor_count', document.getElementById('adv-comp-count').value);
+
+                const secKw = document.getElementById('adv-sec-keywords').value.split(',').map(s => s.trim());
+                formData.append('secondary_keywords', JSON.stringify(secKw));
+            }
+
+            if (currentMode === 'core') {
+                const logoFile = document.getElementById('core-logo-file').files[0];
+                if (logoFile) formData.append('logo_image', logoFile);
+                
+                const refFile = document.getElementById('core-style-file').files[0];
+                if (refFile) formData.append('reference_image', refFile);
+            } else {
+                const logoFile = document.getElementById('adv-logo-file').files[0];
+                if (logoFile) formData.append('logo_image', logoFile);
+                
+                const refFile = document.getElementById('adv-style-file').files[0];
+                if (refFile) formData.append('reference_image', refFile);
+                
+                const examplesFile = document.getElementById('adv-voice-examples').files[0];
+                if (examplesFile) formData.append('brand_voice_examples', examplesFile);
+            }
+
+            // Sync generate_images for core mode
+            if (currentMode === 'core') {
+                formData.append('generate_images', document.getElementById('core-gen-images').checked);
+            }
+
+            try {
+                const baseUrl = window.location.protocol === 'file:' ? 'http://localhost:8000' : '';
+                const res = await fetch(baseUrl + '/generate', { method: 'POST', body: formData });
+                const data = await res.json();
+
+                document.getElementById('result-card').style.display = 'block';
+                const statusText = document.getElementById('status-text');
+                const viewBtn = document.getElementById('view-page-btn');
+
+                if (data.status === 'success') {
+                    const isHeadingOnlyResponse = data.heading_only_mode || (!data.markdown_content && data.heading_preview_markdown);
+                    const isContentStageResponse = data.content_stage_only_mode;
+                    statusText.innerHTML = isHeadingOnlyResponse
+                        ? `<span style="color: var(--success-color); font-weight: 700;">HEADING STRUCTURE GENERATED:</span> ${data.slug}`
+                        : isContentStageResponse
+                            ? `<span style="color: var(--success-color); font-weight: 700;">CONTENT DRAFT GENERATED:</span> ${data.slug}`
+                            : `<span style="color: var(--success-color); font-weight: 700;">ARTICLE GENERATED:</span> ${data.slug}`;
+
+                    if (data.html_content) {
+                        viewBtn.href = `${baseUrl}/output/${encodeURIComponent(data.slug)}/page.html`;
+                        viewBtn.style.display = 'block';
+                    } else {
+                        viewBtn.style.display = 'none';
+                    }
+                } else {
+                    const detail = typeof data.detail === 'string'
+                        ? data.detail
+                        : (data.detail && data.detail.message) ? data.detail.message : '';
+                    statusText.innerHTML = `<span style="color: var(--error-color); font-weight: 700;">ERROR:</span> ${data.message || detail || 'Check terminal'}`;
+                }
+
+                document.getElementById('markdown-out').textContent =
+                    data.markdown_content || data.heading_preview_markdown || 'No Markdown produced';
+                document.getElementById('html-out').textContent =
+                    data.html_content || JSON.stringify(data.outline_structure || [], null, 2) || 'No HTML produced';
+
+            } catch (err) {
+                alert("Failed to connect to backend: " + err.message);
+            } finally {
+                btnText.textContent = 'Generate Content';
+                loader.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+
+</html>
